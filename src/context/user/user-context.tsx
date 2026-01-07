@@ -17,6 +17,9 @@ interface UserContextType {
   isTeacher: boolean;
   isStudent: boolean;
   isParent: boolean;
+  isAccountant: boolean;
+  isCounselor: boolean;
+  isSuperAdmin: boolean;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -50,9 +53,19 @@ export function UserProvider({ children }: UserProviderProps) {
         const token = await getToken({ skipCache: true });
         if (token) {
           apiClient.setAuthToken(token);
-          console.log('[user-context] Token attached to apiClient');
+          // Mask token for safe debug logging
+          const masked =
+            token.length > 12
+              ? `${token.slice(0, 6)}...${token.slice(-6)}`
+              : '<<short-token>>';
+          console.log(
+            '[user-context] Token attached to apiClient (masked)=',
+            masked
+          );
         } else {
-          console.warn('[user-context] getToken returned null - user may not be fully authenticated');
+          console.warn(
+            '[user-context] getToken returned null - user may not be fully authenticated'
+          );
           setUser(null);
           setIsLoading(false);
           return;
@@ -79,9 +92,13 @@ export function UserProvider({ children }: UserProviderProps) {
 
         if (!userData || !userData.id) {
           // No usable user returned — log and fallback to Clerk info
-          console.warn('[user-context] /auth/me returned no user, falling back to Clerk user where possible', apiResp);
+          console.warn(
+            '[user-context] /auth/me returned no user, falling back to Clerk user where possible',
+            apiResp
+          );
 
-          const role = (clerkUser?.publicMetadata?.role as UserRole) || USER_ROLES.STUDENT;
+          const role =
+            (clerkUser?.publicMetadata?.role as UserRole) || USER_ROLES.STUDENT;
           setUser({
             id: clerkUser.id,
             email: clerkUser.primaryEmailAddress?.emailAddress || '',
@@ -93,7 +110,7 @@ export function UserProvider({ children }: UserProviderProps) {
             tenantId: clerkUser.publicMetadata?.tenantId as string,
             createdAt: clerkUser.createdAt?.toISOString(),
             updatedAt: clerkUser.updatedAt?.toISOString(),
-            metadata: clerkUser.publicMetadata as any,
+            metadata: clerkUser.publicMetadata as any
           });
 
           setIsLoading(false);
@@ -107,18 +124,100 @@ export function UserProvider({ children }: UserProviderProps) {
           role: userData.role,
           tenantId: userData.tenantId,
           createdAt: userData.createdAt,
-          updatedAt: userData.updatedAt,
+          updatedAt: userData.updatedAt
         });
       } catch (error: any) {
-        console.warn('[user-context] Failed to fetch user data from API:', error);
-        
-        // If it's a 401 error, don't fallback to Clerk data - user needs proper authentication
+        console.warn(
+          '[user-context] Failed to fetch user data from API:',
+          error
+        );
+
+        // If it's a 401 error, the user doesn't exist in backend yet - create them
         if (error?.response?.status === 401) {
-          console.warn('[user-context] Unauthorized - token may be invalid or expired');
-          setUser(null);
+          console.log(
+            '[user-context] User not found in backend, creating new user record...'
+          );
+
+          try {
+            // Create user in backend using Clerk data
+            const role =
+              (clerkUser?.publicMetadata?.role as UserRole) ||
+              USER_ROLES.STUDENT;
+            const tenantId =
+              (clerkUser?.publicMetadata?.tenantId as string) || 'default';
+
+            // Try to create the user in the backend
+            await apiClient.post('/auth/users', {
+              id: clerkUser.id,
+              email: clerkUser.primaryEmailAddress?.emailAddress || '',
+              name: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim(),
+              role: role,
+              tenantId: tenantId
+            });
+
+            // After creating, try to fetch the user again
+            const retryResp: any = await apiClient.get('/auth/me');
+            let retryUserData = retryResp?.user ?? retryResp ?? null;
+
+            if (retryUserData && retryUserData.id) {
+              setUser({
+                id: retryUserData.id,
+                email: retryUserData.email,
+                name: retryUserData.name,
+                role: retryUserData.role,
+                tenantId: retryUserData.tenantId,
+                createdAt: retryUserData.createdAt,
+                updatedAt: retryUserData.updatedAt
+              });
+              console.log(
+                '[user-context] Successfully created and fetched new user'
+              );
+            } else {
+              // If still no user data, fallback to Clerk data
+              console.warn(
+                '[user-context] User creation successful but still no user data, using Clerk fallback'
+              );
+              setUser({
+                id: clerkUser.id,
+                email: clerkUser.primaryEmailAddress?.emailAddress || '',
+                name: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim(),
+                firstName: clerkUser.firstName || undefined,
+                lastName: clerkUser.lastName || undefined,
+                role: role,
+                avatar: clerkUser.imageUrl,
+                tenantId: tenantId,
+                createdAt: clerkUser.createdAt?.toISOString(),
+                updatedAt: clerkUser.updatedAt?.toISOString(),
+                metadata: clerkUser.publicMetadata as any
+              });
+            }
+          } catch (createError) {
+            console.error(
+              '[user-context] Failed to create user in backend:',
+              createError
+            );
+            // Fallback to Clerk data if user creation fails
+            const role =
+              (clerkUser?.publicMetadata?.role as UserRole) ||
+              USER_ROLES.STUDENT;
+            setUser({
+              id: clerkUser.id,
+              email: clerkUser.primaryEmailAddress?.emailAddress || '',
+              name: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim(),
+              firstName: clerkUser.firstName || undefined,
+              lastName: clerkUser.lastName || undefined,
+              role,
+              avatar: clerkUser.imageUrl,
+              tenantId: clerkUser.publicMetadata?.tenantId as string,
+              createdAt: clerkUser.createdAt?.toISOString(),
+              updatedAt: clerkUser.updatedAt?.toISOString(),
+              metadata: clerkUser.publicMetadata as any
+            });
+          }
         } else {
           // Only fallback to Clerk data for other errors (network issues, server errors, etc.)
-          const role = (clerkUser?.publicMetadata?.role as UserRole) || USER_ROLES.STUDENT;
+          const role =
+            (clerkUser?.publicMetadata?.role as UserRole) || USER_ROLES.STUDENT;
           setUser({
             id: clerkUser.id,
             email: clerkUser.primaryEmailAddress?.emailAddress || '',
@@ -130,11 +229,11 @@ export function UserProvider({ children }: UserProviderProps) {
             tenantId: clerkUser.publicMetadata?.tenantId as string,
             createdAt: clerkUser.createdAt?.toISOString(),
             updatedAt: clerkUser.updatedAt?.toISOString(),
-            metadata: clerkUser.publicMetadata as any,
+            metadata: clerkUser.publicMetadata as any
           });
         }
       }
-      
+
       setIsLoading(false);
     }
 
@@ -164,7 +263,7 @@ export function UserProvider({ children }: UserProviderProps) {
         clearInterval(refreshInterval);
       }
     };
-  }, [clerkUser, isLoaded, getToken]);
+  }, [isLoaded]);
 
   const hasPermission = (resource: string, action: string): boolean => {
     if (!user) return false;
@@ -192,13 +291,12 @@ export function UserProvider({ children }: UserProviderProps) {
     isTeacher: isRole(USER_ROLES.TEACHER),
     isStudent: isRole(USER_ROLES.STUDENT),
     isParent: isRole(USER_ROLES.PARENT),
+    isAccountant: isRole(USER_ROLES.ACCOUNTANT),
+    isCounselor: isRole(USER_ROLES.COUNSELOR),
+    isSuperAdmin: isRole(USER_ROLES.SUPER_ADMIN)
   };
 
-  return (
-    <UserContext.Provider value={value}>
-      {children}
-    </UserContext.Provider>
-  );
+  return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 }
 
 export function useUser() {

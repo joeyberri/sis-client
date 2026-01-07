@@ -1,25 +1,38 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle, 
-  CardDescription, 
-  CardFooter 
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter
+} from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  Search, 
-  CheckCircle2, 
-  Wand2, 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
+import {
+  Search,
+  CheckCircle2,
+  Wand2,
   ChevronRight,
   Globe,
   School,
@@ -36,13 +49,13 @@ import {
   Filter,
   X
 } from 'lucide-react';
-import { 
+import {
   TEMPLATE_CATEGORIES,
   getPopularTemplates,
   searchTemplates,
   getTemplatesByCategory,
   type TemplateDefinition,
-  type TemplateCategory 
+  type TemplateCategory
 } from '../data/templates';
 import { TemplateRecommendationWizard } from './TemplateRecommendationWizard';
 import { cn } from '@/lib/utils';
@@ -52,14 +65,14 @@ import { cn } from '@/lib/utils';
 // ============================================
 
 const CATEGORY_ICONS: Record<TemplateCategory, React.ReactNode> = {
-  k12_standard: <School className="w-4 h-4" />,
-  k12_montessori: <Sparkles className="w-4 h-4" />,
-  k12_international: <Globe className="w-4 h-4" />,
-  k12_religious: <Church className="w-4 h-4" />,
-  vocational: <Wrench className="w-4 h-4" />,
-  higher_education: <GraduationCap className="w-4 h-4" />,
-  special_education: <Heart className="w-4 h-4" />,
-  tutoring_center: <BookOpen className="w-4 h-4" />,
+  k12_standard: <School className='h-4 w-4' />,
+  k12_montessori: <Sparkles className='h-4 w-4' />,
+  k12_international: <Globe className='h-4 w-4' />,
+  k12_religious: <Church className='h-4 w-4' />,
+  vocational: <Wrench className='h-4 w-4' />,
+  higher_education: <GraduationCap className='h-4 w-4' />,
+  special_education: <Heart className='h-4 w-4' />,
+  tutoring_center: <BookOpen className='h-4 w-4' />
 };
 
 // Helper to determine the best visual aid for a template type
@@ -83,44 +96,55 @@ interface TemplateDetailSheetProps {
   isSelected: boolean;
 }
 
-function TemplateDetailSheet({ template, onClose, onSelect, isSelected }: TemplateDetailSheetProps) {
+function TemplateDetailSheet({
+  template,
+  onClose,
+  onSelect,
+  isSelected
+}: TemplateDetailSheetProps) {
   if (!template) return null;
 
   const visualAidTag = getTemplateVisualAid(template);
 
   return (
     <Sheet open={!!template} onOpenChange={onClose}>
-      <SheetContent className="w-full sm:w-[540px] flex flex-col p-0 gap-0">
-        <ScrollArea className="flex-1 h-full">
-          <div className="p-6">
+      <SheetContent className='flex w-full flex-col gap-0 p-0 sm:w-[540px]'>
+        <ScrollArea className='h-full flex-1'>
+          <div className='p-6'>
             {/* Header */}
-            <SheetHeader className="pb-6">
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-16 h-16 bg-primary/5 rounded-2xl flex items-center justify-center text-4xl border border-primary/10">
+            <SheetHeader className='pb-6'>
+              <div className='flex items-start gap-4'>
+                <div className='bg-primary/5 border-primary/10 flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl border text-4xl'>
                   {template.emoji}
                 </div>
-                <div className="space-y-1">
-                  <Badge variant="outline" className="mb-1">{template.category.replace('_', ' ').toUpperCase()}</Badge>
-                  <SheetTitle className="text-2xl">{template.name}</SheetTitle>
-                  <SheetDescription>{template.country} • {template.educationLevel}</SheetDescription>
+                <div className='space-y-1'>
+                  <Badge variant='outline' className='mb-1'>
+                    {template.category.replace('_', ' ').toUpperCase()}
+                  </Badge>
+                  <SheetTitle className='text-2xl'>{template.name}</SheetTitle>
+                  <SheetDescription>
+                    {template.country} • {template.educationLevel}
+                  </SheetDescription>
                 </div>
               </div>
             </SheetHeader>
 
-            <div className="space-y-8">
+            <div className='space-y-8'>
               {/* About Section */}
-              <section className="space-y-3">
-                <h4 className="text-sm font-semibold flex items-center gap-2">
-                  <Layout className="w-4 h-4 text-primary" /> Structure Overview
+              <section className='space-y-3'>
+                <h4 className='flex items-center gap-2 text-sm font-semibold'>
+                  <Layout className='text-primary h-4 w-4' /> Structure Overview
                 </h4>
-                <p className="text-sm text-muted-foreground leading-relaxed">
+                <p className='text-muted-foreground text-sm leading-relaxed'>
                   {template.detailedDescription}
                 </p>
-                
+
                 {/* Visual Aid Trigger */}
                 {visualAidTag && (
-                  <div className="mt-4 p-4 bg-muted/30 border border-dashed rounded-lg text-xs text-muted-foreground text-center italic">
-                    <span className="block mb-1 font-semibold not-italic">Structure Visualization</span>
+                  <div className='bg-muted/30 text-muted-foreground mt-4 rounded-lg border border-dashed p-4 text-center text-xs italic'>
+                    <span className='mb-1 block font-semibold not-italic'>
+                      Structure Visualization
+                    </span>
                     {visualAidTag}
                   </div>
                 )}
@@ -129,33 +153,41 @@ function TemplateDetailSheet({ template, onClose, onSelect, isSelected }: Templa
               <Separator />
 
               {/* Technical Details Grid */}
-              <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                 <Card className="bg-muted/20 border-none shadow-none">
-                    <CardContent className="p-4 space-y-2">
-                      <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                        <BarChart3 className="w-3 h-3" /> Grading System
-                      </div>
-                      <p className="text-sm font-medium">{template.gradingSystem.description}</p>
-                    </CardContent>
-                 </Card>
-                 <Card className="bg-muted/20 border-none shadow-none">
-                    <CardContent className="p-4 space-y-2">
-                      <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                        <Calendar className="w-3 h-3" /> Schedule Format
-                      </div>
-                      <p className="text-sm font-medium">{template.academicCalendar.description}</p>
-                    </CardContent>
-                 </Card>
+              <section className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
+                <Card className='bg-muted/20 border-none shadow-none'>
+                  <CardContent className='space-y-2 p-4'>
+                    <div className='text-muted-foreground flex items-center gap-2 text-xs font-medium'>
+                      <BarChart3 className='h-3 w-3' /> Grading System
+                    </div>
+                    <p className='text-sm font-medium'>
+                      {template.gradingSystem.description}
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card className='bg-muted/20 border-none shadow-none'>
+                  <CardContent className='space-y-2 p-4'>
+                    <div className='text-muted-foreground flex items-center gap-2 text-xs font-medium'>
+                      <Calendar className='h-3 w-3' /> Schedule Format
+                    </div>
+                    <p className='text-sm font-medium'>
+                      {template.academicCalendar.description}
+                    </p>
+                  </CardContent>
+                </Card>
               </section>
 
               {/* Sample Curriculum */}
               <section>
-                <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-primary" /> Default Subjects
+                <h4 className='mb-3 flex items-center gap-2 text-sm font-semibold'>
+                  <BookOpen className='text-primary h-4 w-4' /> Default Subjects
                 </h4>
-                <div className="flex flex-wrap gap-2">
+                <div className='flex flex-wrap gap-2'>
                   {template.sampleCurriculum.map((subject, i) => (
-                    <Badge key={i} variant="secondary" className="px-3 py-1 bg-secondary/50">
+                    <Badge
+                      key={i}
+                      variant='secondary'
+                      className='bg-secondary/50 px-3 py-1'
+                    >
                       {subject}
                     </Badge>
                   ))}
@@ -165,24 +197,34 @@ function TemplateDetailSheet({ template, onClose, onSelect, isSelected }: Templa
               <Separator />
 
               {/* Pros/Cons */}
-              <section className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <h4 className="text-xs font-bold text-green-600 uppercase tracking-wide">Best For</h4>
-                  <ul className="space-y-2">
+              <section className='grid grid-cols-2 gap-6'>
+                <div className='space-y-2'>
+                  <h4 className='text-xs font-bold tracking-wide text-green-600 uppercase'>
+                    Best For
+                  </h4>
+                  <ul className='space-y-2'>
                     {template.idealFor.map((item, i) => (
-                      <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
-                        <CheckCircle2 className="w-3 h-3 mt-1 text-green-600 shrink-0" />
+                      <li
+                        key={i}
+                        className='text-muted-foreground flex items-start gap-2 text-sm'
+                      >
+                        <CheckCircle2 className='mt-1 h-3 w-3 shrink-0 text-green-600' />
                         {item}
                       </li>
                     ))}
                   </ul>
                 </div>
-                <div className="space-y-2">
-                  <h4 className="text-xs font-bold text-orange-600 uppercase tracking-wide">Considerations</h4>
-                  <ul className="space-y-2">
+                <div className='space-y-2'>
+                  <h4 className='text-xs font-bold tracking-wide text-orange-600 uppercase'>
+                    Considerations
+                  </h4>
+                  <ul className='space-y-2'>
                     {template.notIdealFor.map((item, i) => (
-                      <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-orange-400 mt-1.5 shrink-0" />
+                      <li
+                        key={i}
+                        className='text-muted-foreground flex items-start gap-2 text-sm'
+                      >
+                        <div className='mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-orange-400' />
                         {item}
                       </li>
                     ))}
@@ -194,16 +236,16 @@ function TemplateDetailSheet({ template, onClose, onSelect, isSelected }: Templa
         </ScrollArea>
 
         {/* Footer Actions */}
-        <div className="p-6 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <Button 
-            onClick={onSelect} 
-            className="w-full h-12 text-lg" 
-            variant={isSelected ? "secondary" : "default"}
+        <div className='bg-background/95 supports-[backdrop-filter]:bg-background/60 border-t p-6 backdrop-blur'>
+          <Button
+            onClick={onSelect}
+            className='h-12 w-full text-lg'
+            variant={isSelected ? 'secondary' : 'default'}
             disabled={isSelected}
           >
             {isSelected ? (
               <>
-                <CheckCircle2 className="w-5 h-5 mr-2 text-green-600" />
+                <CheckCircle2 className='mr-2 h-5 w-5 text-green-600' />
                 Template Selected
               </>
             ) : (
@@ -227,58 +269,63 @@ interface TemplateCardProps {
   onViewDetails: () => void;
 }
 
-function TemplateCard({ template, isSelected, onSelect, onViewDetails }: TemplateCardProps) {
+function TemplateCard({
+  template,
+  isSelected,
+  onSelect,
+  onViewDetails
+}: TemplateCardProps) {
   return (
-    <Card 
+    <Card
       className={cn(
-        "group relative flex flex-col transition-all duration-300 hover:-translate-y-1 hover:shadow-md cursor-pointer",
-        isSelected 
-          ? "border-primary ring-1 ring-primary bg-primary/5 shadow-md" 
-          : "hover:border-primary/50"
+        'group relative flex cursor-pointer flex-col transition-all duration-300 hover:-translate-y-1 hover:shadow-md',
+        isSelected
+          ? 'border-primary ring-primary bg-primary/5 shadow-md ring-1'
+          : 'hover:border-primary/50'
       )}
       onClick={onSelect}
     >
-      <CardHeader className="pb-3">
-        <div className="flex justify-between items-start">
-          <div className="w-12 h-12 rounded-lg bg-background border shadow-sm flex items-center justify-center text-2xl group-hover:scale-110 transition-transform duration-300">
+      <CardHeader className='pb-3'>
+        <div className='flex items-start justify-between'>
+          <div className='bg-background flex h-12 w-12 items-center justify-center rounded-lg border text-2xl shadow-sm transition-transform duration-300 group-hover:scale-110'>
             {template.emoji}
           </div>
           {isSelected && (
-            <span className="absolute top-4 right-4 flex items-center gap-1.5 text-xs font-medium text-primary bg-background px-2 py-1 rounded-full shadow-sm ring-1 ring-border">
-              <CheckCircle2 className="w-3.5 h-3.5 fill-primary text-white" />
+            <span className='text-primary bg-background ring-border absolute top-4 right-4 flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium shadow-sm ring-1'>
+              <CheckCircle2 className='fill-primary h-3.5 w-3.5 text-white' />
               Selected
             </span>
           )}
         </div>
-        <div className="mt-4">
-          <CardTitle className="text-base font-semibold leading-tight mb-1">
+        <div className='mt-4'>
+          <CardTitle className='mb-1 text-base leading-tight font-semibold'>
             {template.name}
           </CardTitle>
-          <CardDescription className="flex items-center gap-2 text-xs">
-            <span className="inline-block w-2 h-2 rounded-full bg-muted-foreground/30" />
+          <CardDescription className='flex items-center gap-2 text-xs'>
+            <span className='bg-muted-foreground/30 inline-block h-2 w-2 rounded-full' />
             {template.country}
           </CardDescription>
         </div>
       </CardHeader>
-      
-      <CardContent className="flex-1 pb-3">
-        <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
+
+      <CardContent className='flex-1 pb-3'>
+        <p className='text-muted-foreground line-clamp-3 text-sm leading-relaxed'>
           {template.description}
         </p>
       </CardContent>
-      
-      <CardFooter className="pt-0 flex items-center gap-2 mt-auto">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="flex-1 justify-between text-muted-foreground group-hover:text-primary transition-colors pl-2"
+
+      <CardFooter className='mt-auto flex items-center gap-2 pt-0'>
+        <Button
+          variant='ghost'
+          size='sm'
+          className='text-muted-foreground group-hover:text-primary flex-1 justify-between pl-2 transition-colors'
           onClick={(e) => {
             e.stopPropagation();
             onViewDetails();
           }}
         >
           Details
-          <ChevronRight className="w-4 h-4 opacity-50 group-hover:opacity-100 transition-opacity" />
+          <ChevronRight className='h-4 w-4 opacity-50 transition-opacity group-hover:opacity-100' />
         </Button>
       </CardFooter>
     </Card>
@@ -295,16 +342,19 @@ interface EnhancedTemplateSelectorProps {
   loading?: boolean;
 }
 
-export function EnhancedTemplateSelector({ 
-  selectedTemplateId, 
-  onSelect, 
-  loading 
+export function EnhancedTemplateSelector({
+  selectedTemplateId,
+  onSelect,
+  loading
 }: EnhancedTemplateSelectorProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [regionFilter, setRegionFilter] = useState<string>('all');
   const [activeTab, setActiveTab] = useState<'browse' | 'wizard'>('browse');
-  const [activeCategory, setActiveCategory] = useState<TemplateCategory | 'popular'>('popular');
-  const [detailTemplate, setDetailTemplate] = useState<TemplateDefinition | null>(null);
+  const [activeCategory, setActiveCategory] = useState<
+    TemplateCategory | 'popular'
+  >('popular');
+  const [detailTemplate, setDetailTemplate] =
+    useState<TemplateDefinition | null>(null);
 
   // Derived state for filtering
   const filteredTemplates = useMemo(() => {
@@ -321,7 +371,9 @@ export function EnhancedTemplateSelector({
 
     // 2. Region filtering
     if (regionFilter !== 'all') {
-      results = results.filter(t => t.country.toLowerCase().includes(regionFilter.toLowerCase()));
+      results = results.filter((t) =>
+        t.country.toLowerCase().includes(regionFilter.toLowerCase())
+      );
     }
 
     return results;
@@ -335,42 +387,44 @@ export function EnhancedTemplateSelector({
   };
 
   return (
-    <div className="space-y-6">
+    <div className='space-y-6'>
       {/* Top Bar: Wizard Toggle & Search */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-end md:items-center">
-        <div className="flex-1 w-full flex gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+      <div className='flex flex-col items-end justify-between gap-4 md:flex-row md:items-center'>
+        <div className='flex w-full flex-1 gap-3'>
+          <div className='relative flex-1'>
+            <Search className='text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2' />
             <Input
-              placeholder="Search curriculum, country, or system..."
+              placeholder='Search curriculum, country, or system...'
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-10 bg-background"
+              className='bg-background h-10 pl-10'
             />
           </div>
-          
+
           {/* Region Filter - Visual Aid:  is implied here by the globe icon */}
           <Select value={regionFilter} onValueChange={setRegionFilter}>
-            <SelectTrigger className="w-[140px] md:w-[180px] h-10">
-              <Filter className="w-4 h-4 mr-2 text-muted-foreground" />
-              <SelectValue placeholder="Region" />
+            <SelectTrigger className='h-10 w-[140px] md:w-[180px]'>
+              <Filter className='text-muted-foreground mr-2 h-4 w-4' />
+              <SelectValue placeholder='Region' />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Regions</SelectItem>
-              <SelectItem value="us">United States</SelectItem>
-              <SelectItem value="uk">United Kingdom</SelectItem>
-              <SelectItem value="international">International</SelectItem>
-              <SelectItem value="asia">Asia</SelectItem>
+              <SelectItem value='all'>All Regions</SelectItem>
+              <SelectItem value='us'>United States</SelectItem>
+              <SelectItem value='uk'>United Kingdom</SelectItem>
+              <SelectItem value='international'>International</SelectItem>
+              <SelectItem value='asia'>Asia</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <Button
           variant={activeTab === 'wizard' ? 'secondary' : 'outline'}
-          onClick={() => setActiveTab(activeTab === 'wizard' ? 'browse' : 'wizard')}
-          className="shrink-0 h-10"
+          onClick={() =>
+            setActiveTab(activeTab === 'wizard' ? 'browse' : 'wizard')
+          }
+          className='h-10 shrink-0'
         >
-          <Wand2 className="w-4 h-4 mr-2" />
+          <Wand2 className='mr-2 h-4 w-4' />
           {activeTab === 'wizard' ? 'Exit Assistant' : 'Help Me Choose'}
         </Button>
       </div>
@@ -384,53 +438,62 @@ export function EnhancedTemplateSelector({
           onCancel={() => setActiveTab('browse')}
         />
       ) : (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-          
+        <div className='animate-in fade-in slide-in-from-bottom-2 space-y-6 duration-500'>
           {/* Category Tabs */}
           {!searchQuery && (
-            <div className="relative">
-              <ScrollArea className="w-full whitespace-nowrap pb-4">
-                <div className="flex gap-2">
+            <div className='relative'>
+              <ScrollArea className='w-full pb-4 whitespace-nowrap'>
+                <div className='flex gap-2'>
                   <Button
                     variant={activeCategory === 'popular' ? 'default' : 'ghost'}
-                    size="sm"
+                    size='sm'
                     onClick={() => setActiveCategory('popular')}
-                    className="rounded-full px-4"
+                    className='rounded-full px-4'
                   >
                     Popular
                   </Button>
-                  <Separator orientation="vertical" className="h-6 mx-1" />
-                  {(Object.entries(TEMPLATE_CATEGORIES) as [TemplateCategory, typeof TEMPLATE_CATEGORIES[TemplateCategory]][]).map(([key, value]) => (
+                  <Separator orientation='vertical' className='mx-1 h-6' />
+                  {(
+                    Object.entries(TEMPLATE_CATEGORIES) as [
+                      TemplateCategory,
+                      (typeof TEMPLATE_CATEGORIES)[TemplateCategory]
+                    ][]
+                  ).map(([key, value]) => (
                     <Button
                       key={key}
                       variant={activeCategory === key ? 'secondary' : 'ghost'}
-                      size="sm"
+                      size='sm'
                       onClick={() => setActiveCategory(key)}
                       className={cn(
-                        "rounded-full px-4 transition-all",
-                        activeCategory === key && "bg-secondary text-secondary-foreground font-medium shadow-sm"
+                        'rounded-full px-4 transition-all',
+                        activeCategory === key &&
+                          'bg-secondary text-secondary-foreground font-medium shadow-sm'
                       )}
                     >
-                      <span className="mr-2 opacity-70">{CATEGORY_ICONS[key]}</span>
+                      <span className='mr-2 opacity-70'>
+                        {CATEGORY_ICONS[key]}
+                      </span>
                       {value.label}
                     </Button>
                   ))}
                 </div>
               </ScrollArea>
-              
-              <div className="bg-muted/30 border rounded-lg p-3 text-sm text-muted-foreground flex items-center gap-3">
-                 <InfoIcon category={activeCategory as TemplateCategory | 'popular'} />
-                 {activeCategory === 'popular' 
-                    ? "Showing the most frequently used templates across our global network."
-                    : TEMPLATE_CATEGORIES[activeCategory as TemplateCategory].description
-                 }
+
+              <div className='bg-muted/30 text-muted-foreground flex items-center gap-3 rounded-lg border p-3 text-sm'>
+                <InfoIcon
+                  category={activeCategory as TemplateCategory | 'popular'}
+                />
+                {activeCategory === 'popular'
+                  ? 'Showing the most frequently used templates across our global network.'
+                  : TEMPLATE_CATEGORIES[activeCategory as TemplateCategory]
+                      .description}
               </div>
             </div>
           )}
 
           {/* Grid Content */}
           {filteredTemplates.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-5">
+            <div className='grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3'>
               {filteredTemplates.map((template) => (
                 <TemplateCard
                   key={template.id}
@@ -442,15 +505,22 @@ export function EnhancedTemplateSelector({
               ))}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-16 border-2 border-dashed rounded-xl bg-muted/5 text-center px-4">
-              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-                <Search className="w-8 h-8 text-muted-foreground/50" />
+            <div className='bg-muted/5 flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-16 text-center'>
+              <div className='bg-muted mb-4 flex h-16 w-16 items-center justify-center rounded-full'>
+                <Search className='text-muted-foreground/50 h-8 w-8' />
               </div>
-              <h3 className="font-semibold text-lg">No matching templates</h3>
-              <p className="text-muted-foreground max-w-sm mt-2 mb-6">
-                We couldn't find any templates matching "{searchQuery}" in {regionFilter === 'all' ? 'any region' : regionFilter}.
+              <h3 className='text-lg font-semibold'>No matching templates</h3>
+              <p className='text-muted-foreground mt-2 mb-6 max-w-sm'>
+                We couldn't find any templates matching "{searchQuery}" in{' '}
+                {regionFilter === 'all' ? 'any region' : regionFilter}.
               </p>
-              <Button variant="outline" onClick={() => { setSearchQuery(''); setRegionFilter('all'); }}>
+              <Button
+                variant='outline'
+                onClick={() => {
+                  setSearchQuery('');
+                  setRegionFilter('all');
+                }}
+              >
                 Clear Filters
               </Button>
             </div>
@@ -471,6 +541,7 @@ export function EnhancedTemplateSelector({
 
 // Small helper for the info banner
 function InfoIcon({ category }: { category: TemplateCategory | 'popular' }) {
-  if (category === 'popular') return <Target className="w-4 h-4 text-primary" />;
-  return <Layout className="w-4 h-4 text-primary" />;
+  if (category === 'popular')
+    return <Target className='text-primary h-4 w-4' />;
+  return <Layout className='text-primary h-4 w-4' />;
 }

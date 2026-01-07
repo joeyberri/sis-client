@@ -1,282 +1,671 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useUser } from '@/context/user/user-context';
+import { useAuth } from '@clerk/nextjs';
 import PageContainer from '@/components/layout/page-container';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription
+} from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
+  TableRow
 } from '@/components/ui/table';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { apiClient } from '@/lib/api/client';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
+import apiClient from '@/lib/api/client';
 import { EmptyState, ErrorState, LoadingState } from '@/components/empty-state';
-import { CheckCircle, XCircle, HelpCircle, MoreHorizontal, Download } from 'lucide-react';
+import { toast } from 'sonner';
+import {
+  CheckCircle,
+  XCircle,
+  Clock,
+  AlertCircle,
+  Download,
+  Loader2,
+  UserCheck,
+  Save
+} from 'lucide-react';
+
+type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
+
+interface Class {
+  id: string;
+  name: string;
+  grade?: string;
+}
+
+interface Student {
+  id: string;
+  name: string;
+  studentId?: string;
+  email?: string;
+}
 
 interface AttendanceRecord {
-  id: string;
-  studentName: string;
+  id?: string;
   studentId: string;
+  classId: string;
   date: string;
-  status: 'present' | 'absent' | 'late' | 'excused';
+  status: AttendanceStatus;
   notes?: string;
+  student?: Student;
+}
+
+interface AttendanceEntry {
+  studentId: string;
+  studentName: string;
+  studentIdNumber: string;
+  status: AttendanceStatus;
+  notes: string;
+  existing?: boolean;
+  recordId?: string;
 }
 
 export default function AttendancePage() {
   const { isAdmin, isTeacher } = useUser();
+  const { getToken } = useAuth();
+
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [records, setRecords] = useState<AttendanceRecord[]>([]);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
+
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().slice(0, 10)
+  );
   const [searchQuery, setSearchQuery] = useState('');
 
-  const fetchAttendance = async () => {
+  // Attendance entries (state for marking)
+  const [entries, setEntries] = useState<AttendanceEntry[]>([]);
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // Note dialog
+  const [noteDialogOpen, setNoteDialogOpen] = useState(false);
+  const [noteEntry, setNoteEntry] = useState<AttendanceEntry | null>(null);
+  const [noteText, setNoteText] = useState('');
+
+  // Set auth token
+  useEffect(() => {
+    const setToken = async () => {
+      const token = await getToken();
+      if (token) {
+        apiClient.setAuthToken(token);
+      }
+    };
+    setToken();
+  }, [getToken]);
+
+  const fetchClasses = useCallback(async () => {
+    try {
+      const response = await apiClient.getClassesList();
+      setClasses(response.data || []);
+    } catch (err) {
+      console.error('Failed to load classes:', err);
+    }
+  }, []);
+
+  const fetchAttendanceData = useCallback(async () => {
+    if (!selectedClassId) {
+      setEntries([]);
+      return;
+    }
+
     try {
       setLoading(true);
-      const data = await apiClient.getAttendance({ date: selectedDate });
-      setRecords(Array.isArray(data) ? data : []);
+
+      // Fetch enrolled students and existing attendance
+      const [enrollmentsRes, attendanceRes] = await Promise.all([
+        apiClient.getClassEnrollments(selectedClassId),
+        apiClient.getAttendance({
+          classId: selectedClassId,
+          date: selectedDate
+        })
+      ]);
+
+      const enrollments = enrollmentsRes.data || [];
+      const existingAttendance = attendanceRes.data || [];
+
+      // Create attendance map
+      const attendanceMap = new Map<string, AttendanceRecord>();
+      existingAttendance.forEach((record: AttendanceRecord) => {
+        attendanceMap.set(record.studentId, record);
+      });
+
+      // Build entries list
+      const newEntries: AttendanceEntry[] = enrollments.map(
+        (enrollment: any) => {
+          const student = enrollment.student;
+          const existing = attendanceMap.get(
+            student?.id || enrollment.studentId
+          );
+
+          return {
+            studentId: student?.id || enrollment.studentId,
+            studentName: student?.name || 'Unknown',
+            studentIdNumber: student?.studentId || '-',
+            status: existing?.status || 'present',
+            notes: existing?.notes || '',
+            existing: !!existing,
+            recordId: existing?.id
+          };
+        }
+      );
+
+      setEntries(newEntries);
+      setHasChanges(false);
       setError(null);
     } catch (err) {
-      console.error('Failed to load attendance', err);
-      setError('Failed to load attendance');
+      console.error('Failed to load attendance:', err);
+      setError('Failed to load attendance data');
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedClassId, selectedDate]);
 
   useEffect(() => {
-    fetchAttendance();
-  }, [selectedDate]);
+    fetchClasses();
+  }, [fetchClasses]);
 
-  // Filter records by search query
-  const filteredRecords = records.filter(r =>
-    r.studentName.toLowerCase().includes(searchQuery.toLowerCase())
+  useEffect(() => {
+    fetchAttendanceData();
+  }, [fetchAttendanceData]);
+
+  const updateStatus = (studentId: string, status: AttendanceStatus) => {
+    setEntries((prev) =>
+      prev.map((entry) =>
+        entry.studentId === studentId ? { ...entry, status } : entry
+      )
+    );
+    setHasChanges(true);
+  };
+
+  const updateNote = (studentId: string, notes: string) => {
+    setEntries((prev) =>
+      prev.map((entry) =>
+        entry.studentId === studentId ? { ...entry, notes } : entry
+      )
+    );
+    setHasChanges(true);
+  };
+
+  const openNoteDialog = (entry: AttendanceEntry) => {
+    setNoteEntry(entry);
+    setNoteText(entry.notes);
+    setNoteDialogOpen(true);
+  };
+
+  const saveNote = () => {
+    if (noteEntry) {
+      updateNote(noteEntry.studentId, noteText);
+    }
+    setNoteDialogOpen(false);
+    setNoteEntry(null);
+    setNoteText('');
+  };
+
+  const markAllAs = (status: AttendanceStatus) => {
+    setEntries((prev) => prev.map((entry) => ({ ...entry, status })));
+    setHasChanges(true);
+  };
+
+  const saveAttendance = async () => {
+    if (!selectedClassId) return;
+
+    setSaving(true);
+    try {
+      const records = entries.map((entry) => ({
+        studentId: entry.studentId,
+        classId: selectedClassId,
+        date: selectedDate,
+        status: entry.status,
+        notes: entry.notes || undefined
+      }));
+
+      await apiClient.bulkMarkAttendance(
+        selectedClassId,
+        selectedDate,
+        records
+      );
+      toast.success('Attendance saved successfully');
+      setHasChanges(false);
+      await fetchAttendanceData(); // Refresh to get record IDs
+    } catch (err: any) {
+      console.error('Error saving attendance:', err);
+      toast.error(err.response?.data?.message || 'Failed to save attendance');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Filter entries
+  const filteredEntries = entries.filter(
+    (entry) =>
+      entry.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      entry.studentIdNumber.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  if (!isAdmin && !isTeacher) {
+  // Stats
+  const stats = {
+    present: entries.filter((e) => e.status === 'present').length,
+    absent: entries.filter((e) => e.status === 'absent').length,
+    late: entries.filter((e) => e.status === 'late').length,
+    excused: entries.filter((e) => e.status === 'excused').length,
+    total: entries.length
+  };
+
+  const selectedClass = classes.find((c) => c.id === selectedClassId);
+
+  const canAccess = isAdmin || isTeacher;
+
+  if (!canAccess) {
     return (
       <PageContainer>
         <EmptyState
-          variant="error"
-          title="Access Denied"
-          description="You don't have permission to view attendance records. Please contact an administrator."
+          variant='error'
+          title='Access Denied'
+          description="You don't have permission to manage attendance."
         />
       </PageContainer>
     );
   }
-
-  if (loading) {
-    return (
-      <PageContainer>
-        <LoadingState
-          title="Loading attendance..."
-          description="Fetching attendance records for the selected date..."
-        />
-      </PageContainer>
-    );
-  }
-
-  if (error && records.length === 0) {
-    return (
-      <PageContainer>
-        <ErrorState
-          title="Failed to load attendance"
-          description="We couldn't fetch attendance records. Please check your connection and try again."
-          onRetry={fetchAttendance}
-        />
-      </PageContainer>
-    );
-  }
-
-  // Helper function to get status badge
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'present':
-        return <Badge variant="default" className="bg-green-600">✓ Present</Badge>;
-      case 'absent':
-        return <Badge variant="destructive">✗ Absent</Badge>;
-      case 'late':
-        return <Badge variant="secondary">Late</Badge>;
-      case 'excused':
-        return <Badge variant="outline">Excused</Badge>;
-      default:
-        return <Badge>Unknown</Badge>;
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'present':
-        return <CheckCircle className="w-5 h-5 text-green-600" />;
-      case 'absent':
-        return <XCircle className="w-5 h-5 text-destructive" />;
-      case 'late':
-        return <HelpCircle className="w-5 h-5 text-yellow-600" />;
-      default:
-        return <HelpCircle className="w-5 h-5 text-muted-foreground" />;
-    }
-  };
 
   return (
     <PageContainer>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className='space-y-6'>
+        {/* Header */}
+        <div className='flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center'>
           <div>
-            <h1 className="text-3xl font-bold">Attendance Management</h1>
-            <p className="text-muted-foreground">Mark attendance, view history and run reports.</p>
+            <h2 className='text-2xl font-bold tracking-tight'>
+              Attendance Management
+            </h2>
+            <p className='text-muted-foreground'>
+              Mark and manage student attendance by class
+            </p>
           </div>
-          <Button variant="outline">
-            <Download className="mr-2 h-4 w-4" />
-            Export Report
-          </Button>
+          <div className='flex gap-2'>
+            <Button variant='outline'>
+              <Download className='mr-2 h-4 w-4' />
+              Export Report
+            </Button>
+            {hasChanges && (
+              <Button onClick={saveAttendance} disabled={saving}>
+                {saving ? (
+                  <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                ) : (
+                  <Save className='mr-2 h-4 w-4' />
+                )}
+                Save Attendance
+              </Button>
+            )}
+          </div>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Present</CardTitle>
-              <CheckCircle className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {records.filter(r => r.status === 'present').length}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {records.length > 0 && `${Math.round(records.filter(r => r.status === 'present').length / records.length * 100)}% of total`}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Absent</CardTitle>
-              <XCircle className="h-4 w-4 text-destructive" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {records.filter(r => r.status === 'absent').length}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Late</CardTitle>
-              <HelpCircle className="h-4 w-4 text-yellow-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {records.filter(r => r.status === 'late').length}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Excused</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {records.filter(r => r.status === 'excused').length}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Attendance Table */}
+        {/* Class and Date Selection */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Attendance Records</CardTitle>
-                <CardDescription>Mark and view attendance for {selectedDate}</CardDescription>
-              </div>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="px-3 py-2 border border-border rounded-md text-sm"
-              />
-            </div>
+            <CardTitle className='text-lg'>Select Class & Date</CardTitle>
           </CardHeader>
           <CardContent>
-            {filteredRecords.length === 0 ? (
-              <EmptyState
-                title="No attendance records"
-                description={records.length === 0 ? "No students marked for this date yet." : "No students match your search."}
-              />
-            ) : (
-              <>
-                <div className="flex items-center py-4">
-                  <Input
-                    placeholder="Search by student name..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="max-w-sm"
-                  />
+            <div className='grid gap-4 md:grid-cols-3'>
+              <div className='space-y-2'>
+                <Label>Class</Label>
+                <Select
+                  value={selectedClassId}
+                  onValueChange={setSelectedClassId}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder='Select a class' />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {classes.map((cls) => (
+                      <SelectItem key={cls.id} value={cls.id}>
+                        {cls.name} {cls.grade && `(${cls.grade})`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className='space-y-2'>
+                <Label>Date</Label>
+                <Input
+                  type='date'
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                />
+              </div>
+              {selectedClass && (
+                <div className='space-y-2'>
+                  <Label>Students</Label>
+                  <Input value={`${entries.length} enrolled`} disabled />
                 </div>
-                <div className="rounded-md border overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Student Name</TableHead>
-                        <TableHead>Student ID</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Notes</TableHead>
-                        <TableHead className="w-10">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredRecords.map((record) => (
-                        <TableRow key={record.id}>
-                          <TableCell className="font-medium">{record.studentName}</TableCell>
-                          <TableCell className="text-muted-foreground">{record.studentId}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              {getStatusIcon(record.status)}
-                              {getStatusBadge(record.status)}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {record.notes || '—'}
-                          </TableCell>
-                          <TableCell>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Change Status</DropdownMenuLabel>
-                                <DropdownMenuItem>Mark Present</DropdownMenuItem>
-                                <DropdownMenuItem>Mark Absent</DropdownMenuItem>
-                                <DropdownMenuItem>Mark Late</DropdownMenuItem>
-                                <DropdownMenuItem>Mark Excused</DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </>
-            )}
+              )}
+            </div>
           </CardContent>
         </Card>
+
+        {/* Summary Cards */}
+        {selectedClassId && entries.length > 0 && (
+          <div className='grid gap-4 md:grid-cols-5'>
+            <Card>
+              <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+                <CardTitle className='text-sm font-medium'>Total</CardTitle>
+                <UserCheck className='text-muted-foreground h-4 w-4' />
+              </CardHeader>
+              <CardContent>
+                <div className='text-2xl font-bold'>{stats.total}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+                <CardTitle className='text-sm font-medium'>Present</CardTitle>
+                <CheckCircle className='h-4 w-4 text-green-600' />
+              </CardHeader>
+              <CardContent>
+                <div className='text-2xl font-bold text-green-600'>
+                  {stats.present}
+                </div>
+                <p className='text-muted-foreground text-xs'>
+                  {stats.total > 0 &&
+                    `${Math.round((stats.present / stats.total) * 100)}%`}
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+                <CardTitle className='text-sm font-medium'>Absent</CardTitle>
+                <XCircle className='text-destructive h-4 w-4' />
+              </CardHeader>
+              <CardContent>
+                <div className='text-destructive text-2xl font-bold'>
+                  {stats.absent}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+                <CardTitle className='text-sm font-medium'>Late</CardTitle>
+                <Clock className='h-4 w-4 text-amber-600' />
+              </CardHeader>
+              <CardContent>
+                <div className='text-2xl font-bold text-amber-600'>
+                  {stats.late}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+                <CardTitle className='text-sm font-medium'>Excused</CardTitle>
+                <AlertCircle className='h-4 w-4 text-blue-600' />
+              </CardHeader>
+              <CardContent>
+                <div className='text-2xl font-bold text-blue-600'>
+                  {stats.excused}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Attendance Table */}
+        {selectedClassId && (
+          <Card>
+            <CardHeader>
+              <div className='flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center'>
+                <div>
+                  <CardTitle>Mark Attendance</CardTitle>
+                  <CardDescription>
+                    {selectedClass?.name} -{' '}
+                    {new Date(selectedDate).toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </CardDescription>
+                </div>
+                <div className='flex gap-2'>
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    onClick={() => markAllAs('present')}
+                  >
+                    Mark All Present
+                  </Button>
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    onClick={() => markAllAs('absent')}
+                  >
+                    Mark All Absent
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <LoadingState
+                  title='Loading attendance...'
+                  description='Fetching students...'
+                />
+              ) : error ? (
+                <ErrorState
+                  title='Failed to load'
+                  description={error}
+                  onRetry={fetchAttendanceData}
+                />
+              ) : entries.length === 0 ? (
+                <EmptyState
+                  variant='empty'
+                  title='No students enrolled'
+                  description='This class has no enrolled students yet.'
+                />
+              ) : (
+                <>
+                  <div className='flex items-center py-4'>
+                    <Input
+                      placeholder='Search students...'
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className='max-w-sm'
+                    />
+                  </div>
+                  <div className='rounded-md border'>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Student ID</TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Notes</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredEntries.map((entry) => (
+                          <TableRow key={entry.studentId}>
+                            <TableCell className='font-mono text-sm'>
+                              {entry.studentIdNumber}
+                            </TableCell>
+                            <TableCell className='font-medium'>
+                              {entry.studentName}
+                            </TableCell>
+                            <TableCell>
+                              <div className='flex items-center gap-1'>
+                                <Button
+                                  variant={
+                                    entry.status === 'present'
+                                      ? 'default'
+                                      : 'outline'
+                                  }
+                                  size='sm'
+                                  className={
+                                    entry.status === 'present'
+                                      ? 'bg-green-600 hover:bg-green-700'
+                                      : ''
+                                  }
+                                  onClick={() =>
+                                    updateStatus(entry.studentId, 'present')
+                                  }
+                                >
+                                  <CheckCircle className='h-4 w-4' />
+                                </Button>
+                                <Button
+                                  variant={
+                                    entry.status === 'absent'
+                                      ? 'destructive'
+                                      : 'outline'
+                                  }
+                                  size='sm'
+                                  onClick={() =>
+                                    updateStatus(entry.studentId, 'absent')
+                                  }
+                                >
+                                  <XCircle className='h-4 w-4' />
+                                </Button>
+                                <Button
+                                  variant={
+                                    entry.status === 'late'
+                                      ? 'default'
+                                      : 'outline'
+                                  }
+                                  size='sm'
+                                  className={
+                                    entry.status === 'late'
+                                      ? 'bg-amber-600 hover:bg-amber-700'
+                                      : ''
+                                  }
+                                  onClick={() =>
+                                    updateStatus(entry.studentId, 'late')
+                                  }
+                                >
+                                  <Clock className='h-4 w-4' />
+                                </Button>
+                                <Button
+                                  variant={
+                                    entry.status === 'excused'
+                                      ? 'default'
+                                      : 'outline'
+                                  }
+                                  size='sm'
+                                  className={
+                                    entry.status === 'excused'
+                                      ? 'bg-blue-600 hover:bg-blue-700'
+                                      : ''
+                                  }
+                                  onClick={() =>
+                                    updateStatus(entry.studentId, 'excused')
+                                  }
+                                >
+                                  <AlertCircle className='h-4 w-4' />
+                                </Button>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant='ghost'
+                                size='sm'
+                                onClick={() => openNoteDialog(entry)}
+                              >
+                                {entry.notes ? (
+                                  <span className='text-muted-foreground max-w-[150px] truncate text-sm'>
+                                    {entry.notes}
+                                  </span>
+                                ) : (
+                                  <span className='text-muted-foreground text-sm'>
+                                    Add note...
+                                  </span>
+                                )}
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {hasChanges && (
+                    <div className='mt-4 flex justify-end'>
+                      <Button onClick={saveAttendance} disabled={saving}>
+                        {saving ? (
+                          <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                        ) : (
+                          <Save className='mr-2 h-4 w-4' />
+                        )}
+                        Save Attendance
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {!selectedClassId && (
+          <Card>
+            <CardContent className='py-12'>
+              <EmptyState
+                variant='empty'
+                title='Select a class'
+                description='Choose a class from the dropdown above to mark attendance'
+              />
+            </CardContent>
+          </Card>
+        )}
       </div>
+
+      {/* Note Dialog */}
+      <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Note</DialogTitle>
+            <DialogDescription>
+              Add a note for {noteEntry?.studentName}'s attendance
+            </DialogDescription>
+          </DialogHeader>
+          <div className='py-4'>
+            <Textarea
+              placeholder='Enter note (e.g., left early, medical appointment, etc.)'
+              value={noteText}
+              onChange={(e) => setNoteText(e.target.value)}
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant='outline' onClick={() => setNoteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={saveNote}>Save Note</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 }

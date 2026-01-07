@@ -1,4 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useState, useEffect } from 'react';
 
 interface UserAvatarProfileProps {
   className?: string;
@@ -15,6 +16,16 @@ export function UserAvatarProfile({
   showInfo = false,
   user
 }: UserAvatarProfileProps) {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return null; // Prevent rendering during SSR to avoid hydration mismatch
+  }
+
   return (
     <div className='flex items-center gap-2'>
       <Avatar className={className}>
@@ -28,7 +39,9 @@ export function UserAvatarProfile({
         <div className='grid flex-1 text-left text-sm leading-tight'>
           <span className='truncate font-semibold'>{user?.fullName || ''}</span>
           <span className='truncate text-xs'>
-            {user?.emailAddresses?.[0]?.emailAddress || (user as any)?.email || ''}
+            {user?.emailAddresses?.[0]?.emailAddress ||
+              (user as any)?.email ||
+              ''}
           </span>
         </div>
       )}

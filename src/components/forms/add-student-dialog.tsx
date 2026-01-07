@@ -10,7 +10,7 @@ import {
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle,
+  DialogTitle
 } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,7 @@ const studentFormSchema = z.object({
   grade: z.string().min(1, 'Please select a grade'),
   class: z.string().min(1, 'Please select a class'),
   phone: z.string().optional(),
-  address: z.string().optional(),
+  address: z.string().optional()
 });
 
 type StudentFormValues = z.infer<typeof studentFormSchema>;
@@ -40,7 +40,7 @@ const gradeOptions: FormOption[] = [
   { value: '9th', label: '9th Grade' },
   { value: '10th', label: '10th Grade' },
   { value: '11th', label: '11th Grade' },
-  { value: '12th', label: '12th Grade' },
+  { value: '12th', label: '12th Grade' }
 ];
 
 const classOptions: FormOption[] = [
@@ -55,10 +55,14 @@ const classOptions: FormOption[] = [
   { value: '11C', label: '11C' },
   { value: '12A', label: '12A' },
   { value: '12B', label: '12B' },
-  { value: '12C', label: '12C' },
+  { value: '12C', label: '12C' }
 ];
 
-export function AddStudentDialog({ open, onOpenChange, onSubmit }: AddStudentDialogProps) {
+export function AddStudentDialog({
+  open,
+  onOpenChange,
+  onSubmit
+}: AddStudentDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<StudentFormValues>({
@@ -69,8 +73,8 @@ export function AddStudentDialog({ open, onOpenChange, onSubmit }: AddStudentDia
       grade: '',
       class: '',
       phone: '',
-      address: '',
-    },
+      address: ''
+    }
   });
 
   const handleSubmit = async (data: StudentFormValues) => {
@@ -88,7 +92,7 @@ export function AddStudentDialog({ open, onOpenChange, onSubmit }: AddStudentDia
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className='sm:max-w-[500px]'>
         <DialogHeader>
           <DialogTitle>Add New Student</DialogTitle>
           <DialogDescription>
@@ -96,39 +100,43 @@ export function AddStudentDialog({ open, onOpenChange, onSubmit }: AddStudentDia
           </DialogDescription>
         </DialogHeader>
 
-        <Form form={form} onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        <Form
+          form={form}
+          onSubmit={form.handleSubmit(handleSubmit)}
+          className='space-y-4'
+        >
           <FormInput
             control={form.control}
-            name="name"
-            label="Full Name"
+            name='name'
+            label='Full Name'
             placeholder="Enter student's full name"
             required
           />
 
           <FormInput
             control={form.control}
-            name="email"
-            type="email"
-            label="Email"
-            placeholder="student@school.edu"
+            name='email'
+            type='email'
+            label='Email'
+            placeholder='student@school.edu'
             required
           />
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className='grid grid-cols-2 gap-4'>
             <FormSelect
               control={form.control}
-              name="grade"
-              label="Grade"
-              placeholder="Select grade"
+              name='grade'
+              label='Grade'
+              placeholder='Select grade'
               options={gradeOptions}
               required
             />
 
             <FormSelect
               control={form.control}
-              name="class"
-              label="Class"
-              placeholder="Select class"
+              name='class'
+              label='Class'
+              placeholder='Select class'
               options={classOptions}
               required
             />
@@ -136,28 +144,28 @@ export function AddStudentDialog({ open, onOpenChange, onSubmit }: AddStudentDia
 
           <FormInput
             control={form.control}
-            name="phone"
-            label="Phone (Optional)"
-            placeholder="+1 (555) 123-4567"
+            name='phone'
+            label='Phone (Optional)'
+            placeholder='+1 (555) 123-4567'
           />
 
           <FormTextarea
             control={form.control}
-            name="address"
-            label="Address (Optional)"
+            name='address'
+            label='Address (Optional)'
             placeholder="Enter student's address"
           />
 
           <DialogFooter>
             <Button
-              type="button"
-              variant="outline"
+              type='button'
+              variant='outline'
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button type='submit' disabled={isLoading}>
               {isLoading ? 'Adding...' : 'Add Student'}
             </Button>
           </DialogFooter>

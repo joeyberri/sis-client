@@ -10,7 +10,7 @@ import {
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle,
+  DialogTitle
 } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
@@ -26,7 +26,7 @@ const teacherFormSchema = z.object({
   department: z.string().min(1, 'Please select a department'),
   phone: z.string().optional(),
   address: z.string().optional(),
-  qualifications: z.string().optional(),
+  qualifications: z.string().optional()
 });
 
 type TeacherFormValues = z.infer<typeof teacherFormSchema>;
@@ -50,7 +50,7 @@ const subjectOptions: FormOption[] = [
   { value: 'computer-science', label: 'Computer Science' },
   { value: 'chemistry', label: 'Chemistry' },
   { value: 'physics', label: 'Physics' },
-  { value: 'biology', label: 'Biology' },
+  { value: 'biology', label: 'Biology' }
 ];
 
 // Department options
@@ -61,10 +61,14 @@ const departmentOptions: FormOption[] = [
   { value: 'humanities', label: 'Humanities Department' },
   { value: 'arts', label: 'Arts Department' },
   { value: 'physical-education', label: 'Physical Education Department' },
-  { value: 'technology', label: 'Technology Department' },
+  { value: 'technology', label: 'Technology Department' }
 ];
 
-export function AddTeacherDialog({ open, onOpenChange, onSubmit }: AddTeacherDialogProps) {
+export function AddTeacherDialog({
+  open,
+  onOpenChange,
+  onSubmit
+}: AddTeacherDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<TeacherFormValues>({
@@ -76,8 +80,8 @@ export function AddTeacherDialog({ open, onOpenChange, onSubmit }: AddTeacherDia
       department: '',
       phone: '',
       address: '',
-      qualifications: '',
-    },
+      qualifications: ''
+    }
   });
 
   const handleSubmit = async (data: TeacherFormValues) => {
@@ -95,7 +99,7 @@ export function AddTeacherDialog({ open, onOpenChange, onSubmit }: AddTeacherDia
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className='sm:max-w-[500px]'>
         <DialogHeader>
           <DialogTitle>Add New Teacher</DialogTitle>
           <DialogDescription>
@@ -103,39 +107,43 @@ export function AddTeacherDialog({ open, onOpenChange, onSubmit }: AddTeacherDia
           </DialogDescription>
         </DialogHeader>
 
-        <Form form={form} onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        <Form
+          form={form}
+          onSubmit={form.handleSubmit(handleSubmit)}
+          className='space-y-4'
+        >
           <FormInput
             control={form.control}
-            name="name"
-            label="Full Name"
+            name='name'
+            label='Full Name'
             placeholder="Enter teacher's full name"
             required
           />
 
           <FormInput
             control={form.control}
-            name="email"
-            type="email"
-            label="Email"
-            placeholder="teacher@school.edu"
+            name='email'
+            type='email'
+            label='Email'
+            placeholder='teacher@school.edu'
             required
           />
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className='grid grid-cols-2 gap-4'>
             <FormSelect
               control={form.control}
-              name="subject"
-              label="Subject"
-              placeholder="Select subject"
+              name='subject'
+              label='Subject'
+              placeholder='Select subject'
               options={subjectOptions}
               required
             />
 
             <FormSelect
               control={form.control}
-              name="department"
-              label="Department"
-              placeholder="Select department"
+              name='department'
+              label='Department'
+              placeholder='Select department'
               options={departmentOptions}
               required
             />
@@ -143,35 +151,35 @@ export function AddTeacherDialog({ open, onOpenChange, onSubmit }: AddTeacherDia
 
           <FormInput
             control={form.control}
-            name="phone"
-            label="Phone (Optional)"
-            placeholder="+1 (555) 123-4567"
+            name='phone'
+            label='Phone (Optional)'
+            placeholder='+1 (555) 123-4567'
           />
 
           <FormTextarea
             control={form.control}
-            name="address"
-            label="Address (Optional)"
+            name='address'
+            label='Address (Optional)'
             placeholder="Enter teacher's address"
           />
 
           <FormTextarea
             control={form.control}
-            name="qualifications"
-            label="Qualifications (Optional)"
+            name='qualifications'
+            label='Qualifications (Optional)'
             placeholder="Enter teacher's qualifications and experience"
           />
 
           <DialogFooter>
             <Button
-              type="button"
-              variant="outline"
+              type='button'
+              variant='outline'
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button type='submit' disabled={isLoading}>
               {isLoading ? 'Adding...' : 'Add Teacher'}
             </Button>
           </DialogFooter>

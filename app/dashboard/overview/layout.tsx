@@ -1,3 +1,5 @@
+'use client';
+
 import PageContainer from '@/components/layout/page-container';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -9,10 +11,10 @@ import {
   CardFooter
 } from '@/components/ui/card';
 import { IconTrendingDown, IconTrendingUp } from '@tabler/icons-react';
-import { currentUser } from '@clerk/nextjs/server';
+import { useUser } from '@clerk/nextjs';
 import React from 'react';
 
-export default async function OverViewLayout({
+export default function OverViewLayout({
   sales,
   pie_stats,
   bar_stats,
@@ -23,15 +25,8 @@ export default async function OverViewLayout({
   bar_stats: React.ReactNode;
   area_stats: React.ReactNode;
 }) {
-  let userName = 'User';
-
-  try {
-    const user = await currentUser();
-    userName = user?.firstName || user?.username || 'User';
-  } catch (error) {
-    console.error('Failed to get current user:', error);
-    // Fallback to default user name if Clerk fails
-  }
+  const { user, isLoaded } = useUser();
+  const userName = user?.firstName || user?.username || 'User';
 
   return (
     <PageContainer>

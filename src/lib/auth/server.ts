@@ -14,25 +14,16 @@ import { ROLE_PERMISSIONS } from './types';
 /**
  * Get current auth state with properly typed fields
  */
-export async function getAuth(): Promise<{
-  userId: string | null;
-  orgId: string | null;
-  orgRole: SISRole | null;
-  orgSlug: string | null;
-  orgPermissions: Permission[];
-  has: (params: { permission?: string; role?: string }) => boolean;
-  protect: (params?: { permission?: string; role?: string }) => Promise<void>;
-}> {
+export async function getAuth() {
   const authObj = await auth();
-  
+
   return {
     userId: authObj.userId,
-    orgId: authObj.orgId,
+    orgId: authObj.orgId ?? null,
     orgRole: authObj.orgRole as SISRole | null,
-    orgSlug: authObj.orgSlug,
+    orgSlug: authObj.orgSlug ?? null,
     orgPermissions: (authObj.orgPermissions || []) as Permission[],
-    has: authObj.has,
-    protect: authObj.protect,
+    has: authObj.has
   };
 }
 
@@ -40,38 +31,46 @@ export async function getAuth(): Promise<{
  * Require authentication and optionally organization context
  * Redirects if requirements are not met
  */
-export async function requireAuth(options?: { 
+export async function requireAuth(options?: {
   requireOrg?: boolean;
   permission?: Permission;
   role?: SISRole;
   redirectTo?: string;
-}): Promise<{ 
-  userId: string; 
-  orgId: string | null; 
+}): Promise<{
+  userId: string;
+  orgId: string | null;
   orgRole: SISRole | null;
 }> {
   const { userId, orgId, orgRole, has } = await getAuth();
-  
+
   // Must be logged in
   if (!userId) {
-    redirect(options?.redirectTo || '/auth/sign-in');
+    const redirectUrl = new URL(
+      options?.redirectTo || '/auth/sign-in',
+      'http://localhost'
+    );
+    redirectUrl.searchParams.set('fromRedirect', 'true');
+    redirect(redirectUrl.toString());
   }
-  
+
   // Must have organization context
   if (options?.requireOrg && !orgId) {
     redirect('/select-school');
   }
-  
+
   // Must have specific permission
-  if (options?.permission && !has({ permission: options.permission })) {
+  if (
+    options?.permission &&
+    !has({ permission: options.permission as string })
+  ) {
     redirect('/unauthorized');
   }
-  
+
   // Must have specific role (admin can access all)
   if (options?.role && orgRole !== options.role && orgRole !== 'org:admin') {
     redirect('/unauthorized');
   }
-  
+
   return { userId, orgId, orgRole };
 }
 
@@ -81,12 +80,12 @@ export async function requireAuth(options?: {
  */
 export async function requirePermission(permission: Permission): Promise<void> {
   const { has, orgId } = await getAuth();
-  
+
   if (!orgId) {
     throw new Error('No organization context. Please select a school.');
   }
-  
-  if (!has({ permission })) {
+
+  if (!has({ permission: permission as string })) {
     throw new Error(`Missing permission: ${permission}`);
   }
 }
@@ -96,24 +95,24 @@ export async function requirePermission(permission: Permission): Promise<void> {
  */
 export async function requireAnyRole(roles: SISRole[]): Promise<SISRole> {
   const { orgRole, orgId } = await getAuth();
-  
+
   if (!orgId) {
     throw new Error('No organization context. Please select a school.');
   }
-  
+
   if (!orgRole) {
     throw new Error('No role assigned in this organization.');
   }
-  
+
   // Admin can access everything
   if (orgRole === 'org:admin') {
     return orgRole;
   }
-  
+
   if (!roles.includes(orgRole)) {
     throw new Error(`Access denied. Required roles: ${roles.join(', ')}`);
   }
-  
+
   return orgRole;
 }
 
@@ -127,25 +126,29 @@ export async function requireAnyRole(roles: SISRole[]): Promise<SISRole> {
 export async function hasPermission(permission: Permission): Promise<boolean> {
   const { has, orgId } = await getAuth();
   if (!orgId) return false;
-  return has({ permission });
+  return has({ permission: permission as string });
 }
 
 /**
  * Check if user has ALL of the specified permissions
  */
-export async function hasAllPermissions(permissions: Permission[]): Promise<boolean> {
+export async function hasAllPermissions(
+  permissions: Permission[]
+): Promise<boolean> {
   const { has, orgId } = await getAuth();
   if (!orgId) return false;
-  return permissions.every(p => has({ permission: p }));
+  return permissions.every((p) => has({ permission: p as string }));
 }
 
 /**
  * Check if user has ANY of the specified permissions
  */
-export async function hasAnyPermission(permissions: Permission[]): Promise<boolean> {
+export async function hasAnyPermission(
+  permissions: Permission[]
+): Promise<boolean> {
   const { has, orgId } = await getAuth();
   if (!orgId) return false;
-  return permissions.some(p => has({ permission: p }));
+  return permissions.some((p) => has({ permission: p as string }));
 }
 
 // ============================================
@@ -193,9 +196,9 @@ export function getDashboardRouteForRole(role: SISRole | null): DashboardRoute {
     'org:parent': '/dashboard/parent',
     'org:counselor': '/dashboard/counselor',
     'org:accountant': '/dashboard/accountant',
-    'org:member': '/dashboard/admin', // Fallback for default Clerk role
+    'org:member': '/dashboard/admin' // Fallback for default Clerk role
   };
-  
+
   return role ? routes[role] : '/dashboard/admin';
 }
 
@@ -204,13 +207,16 @@ export function getDashboardRouteForRole(role: SISRole | null): DashboardRoute {
  */
 export async function redirectToDashboard(): Promise<never> {
   const { orgRole, orgId } = await getAuth();
-  
+
   if (!orgId) {
     redirect('/select-school');
   }
-  
+
   const dashboardRoute = getDashboardRouteForRole(orgRole);
-  redirect(dashboardRoute);
+  // Use safe redirect to prevent loops
+  const redirectUrl = new URL(dashboardRoute, 'http://localhost'); // Base URL doesn't matter for relative paths
+  redirectUrl.searchParams.set('fromRedirect', 'true');
+  redirect(redirectUrl.toString());
 }
 
 // ============================================
@@ -249,7 +255,11 @@ export async function canManageAttendance(): Promise<boolean> {
  * Check if user can access financial data
  */
 export async function canAccessFinances(): Promise<boolean> {
-  return hasAnyPermission(['org:fees:read', 'org:fees:manage', 'org:financial_reports:read']);
+  return hasAnyPermission([
+    'org:fees:read',
+    'org:fees:manage',
+    'org:financial_reports:read'
+  ]);
 }
 
 /**
@@ -263,7 +273,10 @@ export async function canManageFinances(): Promise<boolean> {
  * Check if user can access counselor features
  */
 export async function canAccessCounseling(): Promise<boolean> {
-  return hasAnyPermission(['org:counselor_notes:read', 'org:counselor_notes:manage']);
+  return hasAnyPermission([
+    'org:counselor_notes:read',
+    'org:counselor_notes:manage'
+  ]);
 }
 
 /**

@@ -2,6 +2,7 @@ import PageContainer from '@/components/layout/page-container';
 import { Button } from '@/components/ui/button';
 import {
   Card,
+  CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
@@ -45,7 +46,7 @@ export default function OverViewPage() {
                 </CardHeader>
                 <CardContent>
                   <div className='text-2xl font-bold'>$45,231.89</div>
-                  <p className='text-xs text-muted-foreground'>
+                  <p className='text-muted-foreground text-xs'>
                     +20.1% from last month
                   </p>
                 </CardContent>
@@ -58,29 +59,33 @@ export default function OverViewPage() {
                 </CardHeader>
                 <CardContent>
                   <div className='text-2xl font-bold'>+2350</div>
-                  <p className='text-xs text-muted-foreground'>
+                  <p className='text-muted-foreground text-xs'>
                     +180.1% from last month
                   </p>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                  <CardTitle className='text-sm font-medium'>Attendance</CardTitle>
+                  <CardTitle className='text-sm font-medium'>
+                    Attendance
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className='text-2xl font-bold'>94.2%</div>
-                  <p className='text-xs text-muted-foreground'>
+                  <p className='text-muted-foreground text-xs'>
                     +19% from last month
                   </p>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                  <CardTitle className='text-sm font-medium'>Active Alerts</CardTitle>
+                  <CardTitle className='text-sm font-medium'>
+                    Active Alerts
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className='text-2xl font-bold'>+573</div>
-                  <p className='text-xs text-muted-foreground'>
+                  <p className='text-muted-foreground text-xs'>
                     +201 since last hour
                   </p>
                 </CardContent>

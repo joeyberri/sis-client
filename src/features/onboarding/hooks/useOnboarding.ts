@@ -29,6 +29,7 @@ export interface Subject {
 export interface ElectiveGroup {
   id: string;
   name: string;
+  description?: string;
   maxSelectable: number;
   minSelectable: number;
   subjects: any[];
@@ -112,7 +113,8 @@ export interface EducationTemplate {
 export function useOnboarding(tenantId: string) {
   const [session, setSession] = useState<OnboardingSession | null>(null);
   const [templates, setTemplates] = useState<EducationTemplate[]>([]);
-  const [selectedTemplate, setSelectedTemplate] = useState<EducationTemplate | null>(null);
+  const [selectedTemplate, setSelectedTemplate] =
+    useState<EducationTemplate | null>(null);
   const [schoolName, setSchoolName] = useState('');
   const [schoolLogo, setSchoolLogo] = useState('');
   const [loading, setLoading] = useState(false);
@@ -135,18 +137,24 @@ export function useOnboarding(tenantId: string) {
     loadSession();
   }, [loadSession]);
 
-  const updateSession = useCallback(async (updates: Partial<OnboardingSession>) => {
-    try {
-      const res = await apiClient.put(`/api/onboarding/session/${tenantId}`, updates);
-      const sessionData = res.data?.session || res.session;
-      setSession(sessionData);
-      return sessionData;
-    } catch (err) {
-      console.error('Failed to update session:', err);
-      setError('Failed to update onboarding progress');
-      throw err;
-    }
-  }, [tenantId]);
+  const updateSession = useCallback(
+    async (updates: Partial<OnboardingSession>) => {
+      try {
+        const res = await apiClient.put(
+          `/api/onboarding/session/${tenantId}`,
+          updates
+        );
+        const sessionData = res.data?.session || res.session;
+        setSession(sessionData);
+        return sessionData;
+      } catch (err) {
+        console.error('Failed to update session:', err);
+        setError('Failed to update onboarding progress');
+        throw err;
+      }
+    },
+    [tenantId]
+  );
 
   const handleCountrySelect = useCallback(
     async (country: string) => {
@@ -155,7 +163,7 @@ export function useOnboarding(tenantId: string) {
         setError(null);
         await updateSession({
           currentStep: 1,
-          selectedCountry: country,
+          selectedCountry: country
         });
         setSelectedTemplate(null);
         setTemplates([]);
@@ -194,7 +202,7 @@ export function useOnboarding(tenantId: string) {
 
         await updateSession({
           currentStep: 2,
-          selectedEducationLevel: level,
+          selectedEducationLevel: level
         });
       } catch (err) {
         console.error('Failed to select education level:', err);
@@ -212,7 +220,7 @@ export function useOnboarding(tenantId: string) {
         setSelectedTemplate(template);
         await updateSession({
           currentStep: 3,
-          selectedTemplateId: template.id,
+          selectedTemplateId: template.id
         });
       } catch (err) {
         setError('Failed to select template');
@@ -242,12 +250,12 @@ export function useOnboarding(tenantId: string) {
         schoolLogo: schoolLogo.trim() || null,
         country: session?.selectedCountry,
         educationLevel: session?.selectedEducationLevel,
-        selectedTemplateId: selectedTemplate.id,
+        selectedTemplateId: selectedTemplate.id
       });
 
       await updateSession({
         currentStep: 5,
-        status: 'completed',
+        status: 'completed'
       });
 
       window.location.href = '/dashboard';
@@ -257,7 +265,14 @@ export function useOnboarding(tenantId: string) {
     } finally {
       setLoading(false);
     }
-  }, [tenantId, schoolName, schoolLogo, selectedTemplate, session, updateSession]);
+  }, [
+    tenantId,
+    schoolName,
+    schoolLogo,
+    selectedTemplate,
+    session,
+    updateSession
+  ]);
 
   return {
     session,
@@ -273,6 +288,6 @@ export function useOnboarding(tenantId: string) {
     handleLevelSelect,
     handleTemplateSelect,
     handleSaveConfiguration,
-    updateSession,
+    updateSession
   };
 }

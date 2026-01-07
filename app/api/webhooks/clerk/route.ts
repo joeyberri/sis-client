@@ -1,11 +1,59 @@
 import { verifyWebhook } from '@clerk/nextjs/webhooks';
 import { NextRequest } from 'next/server';
-import type { 
-  UserJSON, 
-  OrganizationJSON, 
-  OrganizationMembershipJSON,
-  OrganizationInvitationJSON,
-} from '@clerk/nextjs/webhooks';
+
+// Define our own types for Clerk webhook payloads
+// These match the Clerk API response structures
+interface UserJSON {
+  id: string;
+  email_addresses: Array<{ email_address: string; id: string }>;
+  primary_email_address_id: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  image_url: string | null;
+  username: string | null;
+  public_metadata: Record<string, unknown>;
+  private_metadata: Record<string, unknown>;
+  created_at: number;
+  updated_at: number;
+}
+
+interface OrganizationJSON {
+  id: string;
+  name: string;
+  slug: string | null;
+  image_url: string | null;
+  public_metadata: Record<string, unknown>;
+  private_metadata: Record<string, unknown>;
+  created_at: number;
+  updated_at: number;
+}
+
+interface OrganizationMembershipJSON {
+  id: string;
+  organization: { id: string; name: string; slug: string };
+  public_user_data: {
+    user_id: string;
+    identifier: string;
+    first_name: string | null;
+    last_name: string | null;
+    image_url: string | null;
+  };
+  role: string;
+  public_metadata: Record<string, unknown>;
+  private_metadata: Record<string, unknown>;
+  created_at: number;
+  updated_at: number;
+}
+
+interface OrganizationInvitationJSON {
+  id: string;
+  organization_id: string;
+  email_address: string;
+  role: string;
+  status: string;
+  created_at: number;
+  updated_at: number;
+}
 
 // ============================================
 // Webhook Event Handler
@@ -14,79 +62,82 @@ import type {
 export async function POST(req: NextRequest) {
   try {
     const evt = await verifyWebhook(req);
-    
+
     const eventType = evt.type as ClerkWebhookEventType;
     const eventId = evt.data.id;
-    
-    console.log(`[Clerk Webhook] Received event: ${eventType} (ID: ${eventId})`);
-    
+
+    console.log(
+      `[Clerk Webhook] Received event: ${eventType} (ID: ${eventId})`
+    );
+
     // Route to appropriate handler
     switch (eventType) {
       // ============ User Events ============
       case 'user.created':
         await handleUserCreated(evt.data as UserJSON);
         break;
-        
+
       case 'user.updated':
         await handleUserUpdated(evt.data as UserJSON);
         break;
-        
+
       case 'user.deleted':
         await handleUserDeleted(evt.data as { id: string; deleted: boolean });
         break;
-        
+
       // ============ Organization Events ============
       case 'organization.created':
         await handleOrganizationCreated(evt.data as OrganizationJSON);
         break;
-        
+
       case 'organization.updated':
         await handleOrganizationUpdated(evt.data as OrganizationJSON);
         break;
-        
+
       case 'organization.deleted':
-        await handleOrganizationDeleted(evt.data as { id: string; deleted: boolean });
+        await handleOrganizationDeleted(
+          evt.data as { id: string; deleted: boolean }
+        );
         break;
-        
+
       // ============ Membership Events ============
       case 'organizationMembership.created':
         await handleMembershipCreated(evt.data as OrganizationMembershipJSON);
         break;
-        
+
       case 'organizationMembership.updated':
         await handleMembershipUpdated(evt.data as OrganizationMembershipJSON);
         break;
-        
+
       case 'organizationMembership.deleted':
         await handleMembershipDeleted(evt.data as OrganizationMembershipJSON);
         break;
-        
+
       // ============ Invitation Events ============
       case 'organizationInvitation.created':
         await handleInvitationCreated(evt.data as OrganizationInvitationJSON);
         break;
-        
+
       case 'organizationInvitation.accepted':
         await handleInvitationAccepted(evt.data as OrganizationInvitationJSON);
         break;
-        
+
       case 'organizationInvitation.revoked':
         await handleInvitationRevoked(evt.data as OrganizationInvitationJSON);
         break;
-        
+
       default:
         console.log(`[Clerk Webhook] Unhandled event type: ${eventType}`);
     }
-    
-    return new Response(JSON.stringify({ success: true, eventType }), { 
+
+    return new Response(JSON.stringify({ success: true, eventType }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     });
-    
   } catch (err) {
     console.error('[Clerk Webhook] Verification/Processing Error:', err);
     return new Response(
-      JSON.stringify({ error: 'Webhook processing failed' }), 
+      JSON.stringify({ error: 'Webhook processing failed' }),
       { status: 400, headers: { 'Content-Type': 'application/json' } }
     );
   }
@@ -104,14 +155,14 @@ async function handleUserCreated(user: UserJSON) {
     lastName: user.last_name,
     imageUrl: user.image_url,
     username: user.username,
-    createdAt: new Date(user.created_at),
+    createdAt: new Date(user.created_at)
   };
-  
+
   console.log('[Clerk Webhook] Processing user.created:', {
     userId: userData.clerkUserId,
-    email: userData.email,
+    email: userData.email
   });
-  
+
   // TODO: Implement database sync
   // Example with Prisma:
   // await prisma.user.create({
@@ -123,17 +174,17 @@ async function handleUserCreated(user: UserJSON) {
   //     avatarUrl: userData.imageUrl,
   //   },
   // });
-  
+
   // For now, call our backend API
   try {
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
     await fetch(`${backendUrl}/api/webhooks/clerk/user-created`, {
       method: 'POST',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
-        'X-Webhook-Secret': process.env.INTERNAL_WEBHOOK_SECRET || '',
+        'X-Webhook-Secret': process.env.INTERNAL_WEBHOOK_SECRET || ''
       },
-      body: JSON.stringify(userData),
+      body: JSON.stringify(userData)
     });
   } catch (error) {
     console.error('[Clerk Webhook] Failed to sync user to backend:', error);
@@ -148,13 +199,13 @@ async function handleUserUpdated(user: UserJSON) {
     lastName: user.last_name,
     imageUrl: user.image_url,
     username: user.username,
-    updatedAt: new Date(user.updated_at),
+    updatedAt: new Date(user.updated_at)
   };
-  
+
   console.log('[Clerk Webhook] Processing user.updated:', {
-    userId: userData.clerkUserId,
+    userId: userData.clerkUserId
   });
-  
+
   // TODO: Implement database sync
   // await prisma.user.update({
   //   where: { clerkId: userData.clerkUserId },
@@ -164,9 +215,9 @@ async function handleUserUpdated(user: UserJSON) {
 
 async function handleUserDeleted(data: { id: string; deleted: boolean }) {
   console.log('[Clerk Webhook] Processing user.deleted:', {
-    userId: data.id,
+    userId: data.id
   });
-  
+
   // TODO: Implement soft delete or cascade delete
   // await prisma.user.update({
   //   where: { clerkId: data.id },
@@ -180,7 +231,7 @@ async function handleUserDeleted(data: { id: string; deleted: boolean }) {
 
 async function handleOrganizationCreated(org: OrganizationJSON) {
   const publicMetadata = org.public_metadata as SchoolPublicMetadata;
-  
+
   const orgData = {
     clerkOrgId: org.id,
     name: org.name,
@@ -192,15 +243,15 @@ async function handleOrganizationCreated(org: OrganizationJSON) {
     country: publicMetadata?.country,
     educationLevel: publicMetadata?.educationLevel,
     templateId: publicMetadata?.templateId,
-    academicYear: publicMetadata?.academicYear,
+    academicYear: publicMetadata?.academicYear
   };
-  
+
   console.log('[Clerk Webhook] Processing organization.created:', {
     orgId: orgData.clerkOrgId,
     name: orgData.name,
-    slug: orgData.slug,
+    slug: orgData.slug
   });
-  
+
   // TODO: Create school in database
   // await prisma.school.create({
   //   data: {
@@ -210,26 +261,29 @@ async function handleOrganizationCreated(org: OrganizationJSON) {
   //     ...
   //   },
   // });
-  
+
   // Sync to backend
   try {
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
     await fetch(`${backendUrl}/api/webhooks/clerk/organization-created`, {
       method: 'POST',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
-        'X-Webhook-Secret': process.env.INTERNAL_WEBHOOK_SECRET || '',
+        'X-Webhook-Secret': process.env.INTERNAL_WEBHOOK_SECRET || ''
       },
-      body: JSON.stringify(orgData),
+      body: JSON.stringify(orgData)
     });
   } catch (error) {
-    console.error('[Clerk Webhook] Failed to sync organization to backend:', error);
+    console.error(
+      '[Clerk Webhook] Failed to sync organization to backend:',
+      error
+    );
   }
 }
 
 async function handleOrganizationUpdated(org: OrganizationJSON) {
   const publicMetadata = org.public_metadata as SchoolPublicMetadata;
-  
+
   const orgData = {
     clerkOrgId: org.id,
     name: org.name,
@@ -239,22 +293,25 @@ async function handleOrganizationUpdated(org: OrganizationJSON) {
     // From public metadata
     schoolType: publicMetadata?.schoolType,
     country: publicMetadata?.country,
-    academicYear: publicMetadata?.academicYear,
+    academicYear: publicMetadata?.academicYear
   };
-  
+
   console.log('[Clerk Webhook] Processing organization.updated:', {
     orgId: orgData.clerkOrgId,
-    name: orgData.name,
+    name: orgData.name
   });
-  
+
   // TODO: Update school in database
 }
 
-async function handleOrganizationDeleted(data: { id: string; deleted: boolean }) {
+async function handleOrganizationDeleted(data: {
+  id: string;
+  deleted: boolean;
+}) {
   console.log('[Clerk Webhook] Processing organization.deleted:', {
-    orgId: data.id,
+    orgId: data.id
   });
-  
+
   // TODO: Soft delete or archive school
   // This is a serious operation - typically soft delete
 }
@@ -264,8 +321,9 @@ async function handleOrganizationDeleted(data: { id: string; deleted: boolean })
 // ============================================
 
 async function handleMembershipCreated(membership: OrganizationMembershipJSON) {
-  const membershipMetadata = membership.public_metadata as MembershipPublicMetadata;
-  
+  const membershipMetadata =
+    membership.public_metadata as MembershipPublicMetadata;
+
   const memberData = {
     id: membership.id,
     clerkUserId: membership.public_user_data.user_id,
@@ -281,16 +339,16 @@ async function handleMembershipCreated(membership: OrganizationMembershipJSON) {
     department: membershipMetadata?.department,
     employeeId: membershipMetadata?.employeeId,
     studentId: membershipMetadata?.studentId,
-    classId: membershipMetadata?.classId,
+    classId: membershipMetadata?.classId
   };
-  
+
   console.log('[Clerk Webhook] Processing organizationMembership.created:', {
     membershipId: memberData.id,
     userId: memberData.clerkUserId,
     orgId: memberData.clerkOrgId,
-    role: memberData.role,
+    role: memberData.role
   });
-  
+
   // Create role-specific records based on the role
   await createRoleSpecificRecord(memberData);
 }
@@ -301,14 +359,14 @@ async function handleMembershipUpdated(membership: OrganizationMembershipJSON) {
     clerkUserId: membership.public_user_data.user_id,
     clerkOrgId: membership.organization.id,
     role: membership.role as SISRole,
-    updatedAt: new Date(membership.updated_at),
+    updatedAt: new Date(membership.updated_at)
   };
-  
+
   console.log('[Clerk Webhook] Processing organizationMembership.updated:', {
     membershipId: memberData.id,
-    newRole: memberData.role,
+    newRole: memberData.role
   });
-  
+
   // Role changed - may need to update/create role-specific records
   // TODO: Handle role transitions (e.g., member promoted to admin)
 }
@@ -317,9 +375,9 @@ async function handleMembershipDeleted(membership: OrganizationMembershipJSON) {
   console.log('[Clerk Webhook] Processing organizationMembership.deleted:', {
     membershipId: membership.id,
     userId: membership.public_user_data.user_id,
-    orgId: membership.organization.id,
+    orgId: membership.organization.id
   });
-  
+
   // TODO: Soft delete related records (teacher, student, etc.)
   // Don't cascade delete grades/attendance - just mark as inactive
 }
@@ -333,20 +391,22 @@ async function handleInvitationCreated(invitation: OrganizationInvitationJSON) {
     invitationId: invitation.id,
     email: invitation.email_address,
     orgId: invitation.organization_id,
-    role: invitation.role,
+    role: invitation.role
   });
-  
+
   // Optionally track pending invitations
   // Could send custom welcome email, track invitation source, etc.
 }
 
-async function handleInvitationAccepted(invitation: OrganizationInvitationJSON) {
+async function handleInvitationAccepted(
+  invitation: OrganizationInvitationJSON
+) {
   console.log('[Clerk Webhook] Processing organizationInvitation.accepted:', {
     invitationId: invitation.id,
     email: invitation.email_address,
-    orgId: invitation.organization_id,
+    orgId: invitation.organization_id
   });
-  
+
   // Invitation accepted - membership.created will also fire
   // Could trigger welcome onboarding, send notification to admin, etc.
 }
@@ -354,9 +414,9 @@ async function handleInvitationAccepted(invitation: OrganizationInvitationJSON) 
 async function handleInvitationRevoked(invitation: OrganizationInvitationJSON) {
   console.log('[Clerk Webhook] Processing organizationInvitation.revoked:', {
     invitationId: invitation.id,
-    email: invitation.email_address,
+    email: invitation.email_address
   });
-  
+
   // Clean up any pending invitation records
 }
 
@@ -373,7 +433,7 @@ interface MemberDataForRole {
   userEmail?: string;
   userFirstName?: string | null;
   userLastName?: string | null;
-  userImageUrl?: string;
+  userImageUrl?: string | null;
   department?: string;
   employeeId?: string;
   studentId?: string;
@@ -385,11 +445,11 @@ interface MemberDataForRole {
  */
 async function createRoleSpecificRecord(memberData: MemberDataForRole) {
   const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
-  const headers = { 
+  const headers = {
     'Content-Type': 'application/json',
-    'X-Webhook-Secret': process.env.INTERNAL_WEBHOOK_SECRET || '',
+    'X-Webhook-Secret': process.env.INTERNAL_WEBHOOK_SECRET || ''
   };
-  
+
   try {
     switch (memberData.role) {
       case 'org:teacher':
@@ -404,11 +464,11 @@ async function createRoleSpecificRecord(memberData: MemberDataForRole) {
             firstName: memberData.userFirstName,
             lastName: memberData.userLastName,
             department: memberData.department,
-            employeeId: memberData.employeeId,
-          }),
+            employeeId: memberData.employeeId
+          })
         });
         break;
-        
+
       case 'org:student':
         // Create Student record
         await fetch(`${backendUrl}/api/webhooks/clerk/student-created`, {
@@ -421,11 +481,11 @@ async function createRoleSpecificRecord(memberData: MemberDataForRole) {
             firstName: memberData.userFirstName,
             lastName: memberData.userLastName,
             studentId: memberData.studentId,
-            classId: memberData.classId,
-          }),
+            classId: memberData.classId
+          })
         });
         break;
-        
+
       case 'org:parent':
         // Create Parent/Guardian record
         await fetch(`${backendUrl}/api/webhooks/clerk/parent-created`, {
@@ -436,11 +496,11 @@ async function createRoleSpecificRecord(memberData: MemberDataForRole) {
             clerkOrgId: memberData.clerkOrgId,
             email: memberData.userEmail,
             firstName: memberData.userFirstName,
-            lastName: memberData.userLastName,
-          }),
+            lastName: memberData.userLastName
+          })
         });
         break;
-        
+
       case 'org:counselor':
         // Create Counselor record
         await fetch(`${backendUrl}/api/webhooks/clerk/counselor-created`, {
@@ -451,11 +511,11 @@ async function createRoleSpecificRecord(memberData: MemberDataForRole) {
             clerkOrgId: memberData.clerkOrgId,
             email: memberData.userEmail,
             firstName: memberData.userFirstName,
-            lastName: memberData.userLastName,
-          }),
+            lastName: memberData.userLastName
+          })
         });
         break;
-        
+
       case 'org:accountant':
         // Create Accountant record
         await fetch(`${backendUrl}/api/webhooks/clerk/accountant-created`, {
@@ -466,21 +526,24 @@ async function createRoleSpecificRecord(memberData: MemberDataForRole) {
             clerkOrgId: memberData.clerkOrgId,
             email: memberData.userEmail,
             firstName: memberData.userFirstName,
-            lastName: memberData.userLastName,
-          }),
+            lastName: memberData.userLastName
+          })
         });
         break;
-        
+
       case 'org:admin':
         // Admin doesn't need separate record, just the membership
         console.log('[Clerk Webhook] Admin role - no additional record needed');
         break;
-        
+
       default:
         console.log(`[Clerk Webhook] Unhandled role: ${memberData.role}`);
     }
   } catch (error) {
-    console.error(`[Clerk Webhook] Failed to create role-specific record for ${memberData.role}:`, error);
+    console.error(
+      `[Clerk Webhook] Failed to create role-specific record for ${memberData.role}:`,
+      error
+    );
     // Don't throw - webhook should still return 200 to prevent retries
   }
 }

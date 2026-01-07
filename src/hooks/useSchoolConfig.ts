@@ -27,6 +27,7 @@ export interface Subject {
 export interface ElectiveGroup {
   id: string;
   name: string;
+  description?: string;
   maxSelectable: number;
   minSelectable: number;
   subjects: any[];

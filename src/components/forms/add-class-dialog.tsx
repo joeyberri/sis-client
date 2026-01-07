@@ -10,7 +10,7 @@ import {
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle,
+  DialogTitle
 } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
@@ -26,15 +26,22 @@ const classFormSchema = z.object({
   subject: z.string().min(1, 'Please select a subject'),
   teacher: z.string().min(1, 'Please select a teacher'),
   grade: z.string().min(1, 'Please select a grade'),
-  maxCapacity: z.number().min(1, 'Capacity must be at least 1').max(50, 'Capacity cannot exceed 50'),
+  maxCapacity: z
+    .number()
+    .min(1, 'Capacity must be at least 1')
+    .max(50, 'Capacity cannot exceed 50'),
   academicYear: z.string().min(1, 'Please select academic year'),
   description: z.string().optional(),
-  schedule: z.array(z.object({
-    day: z.string().min(1, 'Please select a day'),
-    startTime: z.string().min(1, 'Please select start time'),
-    endTime: z.string().min(1, 'Please select end time'),
-    room: z.string().min(1, 'Please enter room number'),
-  })).min(1, 'At least one schedule slot is required'),
+  schedule: z
+    .array(
+      z.object({
+        day: z.string().min(1, 'Please select a day'),
+        startTime: z.string().min(1, 'Please select start time'),
+        endTime: z.string().min(1, 'Please select end time'),
+        room: z.string().min(1, 'Please enter room number')
+      })
+    )
+    .min(1, 'At least one schedule slot is required')
 });
 
 type ClassFormValues = z.infer<typeof classFormSchema>;
@@ -58,7 +65,7 @@ const subjectOptions: FormOption[] = [
   { value: 'art', label: 'Art' },
   { value: 'music', label: 'Music' },
   { value: 'physical-education', label: 'Physical Education' },
-  { value: 'computer-science', label: 'Computer Science' },
+  { value: 'computer-science', label: 'Computer Science' }
 ];
 
 // Grade options
@@ -66,7 +73,7 @@ const gradeOptions: FormOption[] = [
   { value: '9th', label: '9th Grade' },
   { value: '10th', label: '10th Grade' },
   { value: '11th', label: '11th Grade' },
-  { value: '12th', label: '12th Grade' },
+  { value: '12th', label: '12th Grade' }
 ];
 
 // Teacher options (mock data - in real app, this would come from API)
@@ -75,14 +82,14 @@ const teacherOptions: FormOption[] = [
   { value: 'prof-michael-chen', label: 'Prof. Michael Chen' },
   { value: 'ms-emily-rodriguez', label: 'Ms. Emily Rodriguez' },
   { value: 'mr-david-thompson', label: 'Mr. David Thompson' },
-  { value: 'mrs-lisa-park', label: 'Mrs. Lisa Park' },
+  { value: 'mrs-lisa-park', label: 'Mrs. Lisa Park' }
 ];
 
 // Academic year options
 const academicYearOptions: FormOption[] = [
   { value: '2024-2025', label: '2024-2025' },
   { value: '2025-2026', label: '2025-2026' },
-  { value: '2026-2027', label: '2026-2027' },
+  { value: '2026-2027', label: '2026-2027' }
 ];
 
 // Day options
@@ -91,7 +98,7 @@ const dayOptions: FormOption[] = [
   { value: 'tuesday', label: 'Tuesday' },
   { value: 'wednesday', label: 'Wednesday' },
   { value: 'thursday', label: 'Thursday' },
-  { value: 'friday', label: 'Friday' },
+  { value: 'friday', label: 'Friday' }
 ];
 
 // Time options (30-minute intervals)
@@ -114,10 +121,14 @@ const timeOptions: FormOption[] = [
   { value: '15:30', label: '3:30 PM' },
   { value: '16:00', label: '4:00 PM' },
   { value: '16:30', label: '4:30 PM' },
-  { value: '17:00', label: '5:00 PM' },
+  { value: '17:00', label: '5:00 PM' }
 ];
 
-export function AddClassDialog({ open, onOpenChange, onSubmit }: AddClassDialogProps) {
+export function AddClassDialog({
+  open,
+  onOpenChange,
+  onSubmit
+}: AddClassDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<ClassFormValues>({
@@ -130,13 +141,13 @@ export function AddClassDialog({ open, onOpenChange, onSubmit }: AddClassDialogP
       maxCapacity: 30,
       academicYear: '2024-2025',
       description: '',
-      schedule: [{ day: '', startTime: '', endTime: '', room: '' }],
-    },
+      schedule: [{ day: '', startTime: '', endTime: '', room: '' }]
+    }
   });
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
-    name: 'schedule',
+    name: 'schedule'
   });
 
   const handleSubmit = async (data: ClassFormValues) => {
@@ -164,7 +175,7 @@ export function AddClassDialog({ open, onOpenChange, onSubmit }: AddClassDialogP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className='max-h-[90vh] overflow-y-auto sm:max-w-[600px]'>
         <DialogHeader>
           <DialogTitle>Add New Class</DialogTitle>
           <DialogDescription>
@@ -172,61 +183,65 @@ export function AddClassDialog({ open, onOpenChange, onSubmit }: AddClassDialogP
           </DialogDescription>
         </DialogHeader>
 
-        <Form form={form} onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
+        <Form
+          form={form}
+          onSubmit={form.handleSubmit(handleSubmit)}
+          className='space-y-6'
+        >
+          <div className='grid grid-cols-2 gap-4'>
             <FormInput
               control={form.control}
-              name="name"
-              label="Class Name"
-              placeholder="e.g., Advanced Mathematics 10A"
+              name='name'
+              label='Class Name'
+              placeholder='e.g., Advanced Mathematics 10A'
               required
             />
 
             <FormSelect
               control={form.control}
-              name="subject"
-              label="Subject"
-              placeholder="Select subject"
+              name='subject'
+              label='Subject'
+              placeholder='Select subject'
               options={subjectOptions}
               required
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className='grid grid-cols-2 gap-4'>
             <FormSelect
               control={form.control}
-              name="teacher"
-              label="Teacher"
-              placeholder="Select teacher"
+              name='teacher'
+              label='Teacher'
+              placeholder='Select teacher'
               options={teacherOptions}
               required
             />
 
             <FormSelect
               control={form.control}
-              name="grade"
-              label="Grade Level"
-              placeholder="Select grade"
+              name='grade'
+              label='Grade Level'
+              placeholder='Select grade'
               options={gradeOptions}
               required
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className='grid grid-cols-2 gap-4'>
             <FormInput
               control={form.control}
-              name="maxCapacity"
-              type="number"
-              label="Max Capacity"
-              placeholder="30"
+              name='maxCapacity'
+              type='number'
+              label='Max Capacity'
+              placeholder='30'
               required
             />
 
             <FormSelect
               control={form.control}
-              name="academicYear"
-              label="Academic Year"
-              placeholder="Select year"
+              name='academicYear'
+              label='Academic Year'
+              placeholder='Select year'
               options={academicYearOptions}
               required
             />
@@ -234,51 +249,51 @@ export function AddClassDialog({ open, onOpenChange, onSubmit }: AddClassDialogP
 
           <FormTextarea
             control={form.control}
-            name="description"
-            label="Description (Optional)"
-            placeholder="Brief description of the class"
+            name='description'
+            label='Description (Optional)'
+            placeholder='Brief description of the class'
           />
 
           {/* Schedule Section */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg flex items-center justify-between">
+              <CardTitle className='flex items-center justify-between text-lg'>
                 Class Schedule
                 <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
+                  type='button'
+                  variant='outline'
+                  size='sm'
                   onClick={addScheduleSlot}
                 >
-                  <Plus className="h-4 w-4 mr-1" />
+                  <Plus className='mr-1 h-4 w-4' />
                   Add Slot
                 </Button>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className='space-y-4'>
               {fields.map((field, index) => (
-                <div key={field.id} className="border rounded-lg p-4 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium">Schedule Slot {index + 1}</h4>
+                <div key={field.id} className='space-y-4 rounded-lg border p-4'>
+                  <div className='flex items-center justify-between'>
+                    <h4 className='font-medium'>Schedule Slot {index + 1}</h4>
                     {fields.length > 1 && (
                       <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
+                        type='button'
+                        variant='ghost'
+                        size='sm'
                         onClick={() => removeScheduleSlot(index)}
-                        className="text-destructive hover:text-destructive"
+                        className='text-destructive hover:text-destructive'
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className='h-4 w-4' />
                       </Button>
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className='grid grid-cols-2 gap-4'>
                     <FormSelect
                       control={form.control}
                       name={`schedule.${index}.day`}
-                      label="Day"
-                      placeholder="Select day"
+                      label='Day'
+                      placeholder='Select day'
                       options={dayOptions}
                       required
                     />
@@ -286,18 +301,18 @@ export function AddClassDialog({ open, onOpenChange, onSubmit }: AddClassDialogP
                     <FormInput
                       control={form.control}
                       name={`schedule.${index}.room`}
-                      label="Room"
-                      placeholder="e.g., Room 101"
+                      label='Room'
+                      placeholder='e.g., Room 101'
                       required
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className='grid grid-cols-2 gap-4'>
                     <FormSelect
                       control={form.control}
                       name={`schedule.${index}.startTime`}
-                      label="Start Time"
-                      placeholder="Select start time"
+                      label='Start Time'
+                      placeholder='Select start time'
                       options={timeOptions}
                       required
                     />
@@ -305,8 +320,8 @@ export function AddClassDialog({ open, onOpenChange, onSubmit }: AddClassDialogP
                     <FormSelect
                       control={form.control}
                       name={`schedule.${index}.endTime`}
-                      label="End Time"
-                      placeholder="Select end time"
+                      label='End Time'
+                      placeholder='Select end time'
                       options={timeOptions}
                       required
                     />
@@ -318,14 +333,14 @@ export function AddClassDialog({ open, onOpenChange, onSubmit }: AddClassDialogP
 
           <DialogFooter>
             <Button
-              type="button"
-              variant="outline"
+              type='button'
+              variant='outline'
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button type='submit' disabled={isLoading}>
               {isLoading ? 'Creating...' : 'Create Class'}
             </Button>
           </DialogFooter>

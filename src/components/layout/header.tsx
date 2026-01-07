@@ -4,8 +4,8 @@ import { Separator } from '../ui/separator';
 import { Breadcrumbs } from '../breadcrumbs';
 import SearchInput from '../search-input';
 import { UserNav } from './user-nav';
-import { ThemeSelector } from '../theme-selector';
 import { ModeToggle } from './ThemeToggle/theme-toggle';
+import { NotificationBell } from '../notification-bell';
 
 export default function Header() {
   return (
@@ -20,9 +20,9 @@ export default function Header() {
         <div className='hidden md:flex'>
           <SearchInput />
         </div>
+        <NotificationBell />
         <UserNav />
         <ModeToggle />
-        <ThemeSelector />
       </div>
     </header>
   );

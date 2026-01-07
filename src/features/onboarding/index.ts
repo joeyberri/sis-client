@@ -9,16 +9,12 @@ export { EnhancedTemplateSelector } from './components/EnhancedTemplateSelector'
 export { TemplateRecommendationWizard } from './components/TemplateRecommendationWizard';
 export { CountrySelector } from './components/CountrySelector';
 export { EducationLevelSelector } from './components/EducationLevelSelector';
-export { TemplateSelector } from './components/TemplateSelector';
 
 // Hooks
 export { useOnboarding } from './hooks/useOnboarding';
 
 // Data & Types
-export type { 
-  TemplateDefinition, 
-  TemplateCategory,
-} from './data/templates';
+export type { TemplateDefinition, TemplateCategory } from './data/templates';
 
 export {
   TEMPLATE_CATEGORIES,
@@ -28,5 +24,5 @@ export {
   getTemplatesByLevel,
   searchTemplates,
   getPopularTemplates,
-  getTemplateById,
+  getTemplateById
 } from './data/templates';

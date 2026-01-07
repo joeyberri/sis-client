@@ -12,12 +12,12 @@ import './theme.css';
 
 const rubik = Rubik({
   subsets: ['latin'],
-  variable: '--font-rubik',
+  variable: '--font-rubik'
 });
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
-  variable: '--font-jetbrains-mono',
+  variable: '--font-jetbrains-mono'
 });
 
 const META_THEME_COLORS = {
@@ -62,7 +62,7 @@ export default async function RootLayout({
         className={cn(
           rubik.variable,
           jetbrainsMono.variable,
-          'bg-background font-sans overflow-hidden overscroll-none antialiased',
+          'bg-background font-sans antialiased',
           activeThemeValue ? `theme-${activeThemeValue}` : '',
           isScaled ? 'theme-scaled' : ''
         )}

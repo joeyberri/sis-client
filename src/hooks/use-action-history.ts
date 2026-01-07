@@ -17,7 +17,7 @@ interface HistoryState {
   future: Action[];
 }
 
-type HistoryAction = 
+type HistoryAction =
   | { type: 'PUSH'; action: Action }
   | { type: 'UNDO' }
   | { type: 'REDO' }
@@ -26,16 +26,19 @@ type HistoryAction =
 const initialState: HistoryState = {
   past: [],
   present: null,
-  future: [],
+  future: []
 };
 
-function historyReducer(state: HistoryState, action: HistoryAction): HistoryState {
+function historyReducer(
+  state: HistoryState,
+  action: HistoryAction
+): HistoryState {
   switch (action.type) {
     case 'PUSH': {
       return {
         past: state.present ? [...state.past, state.present] : state.past,
         present: action.action,
-        future: [], // Clear future when new action is performed
+        future: [] // Clear future when new action is performed
       };
     }
     case 'UNDO': {
@@ -45,7 +48,7 @@ function historyReducer(state: HistoryState, action: HistoryAction): HistoryStat
       return {
         past: newPast,
         present: newPresent,
-        future: state.present ? [state.present, ...state.future] : state.future,
+        future: state.present ? [state.present, ...state.future] : state.future
       };
     }
     case 'REDO': {
@@ -55,7 +58,7 @@ function historyReducer(state: HistoryState, action: HistoryAction): HistoryStat
       return {
         past: state.present ? [...state.past, state.present] : state.past,
         present: newPresent,
-        future: newFuture,
+        future: newFuture
       };
     }
     case 'CLEAR': {
@@ -86,7 +89,7 @@ export function useActionHistory() {
   }, [state.present]);
 
   const redo = useCallback(async () => {
-    if (state.future.length > 0 && state.future[0].redo) {
+    if (state.future.length > 0) {
       try {
         await state.future[0].redo();
         dispatch({ type: 'REDO' });
@@ -104,10 +107,7 @@ export function useActionHistory() {
   const canUndo = state.past.length > 0 || state.present !== null;
   const canRedo = state.future.length > 0;
 
-  const history = [
-    ...(state.present ? [state.present] : []),
-    ...state.future,
-  ];
+  const history = [...(state.present ? [state.present] : []), ...state.future];
 
   return {
     push,
@@ -117,6 +117,6 @@ export function useActionHistory() {
     canUndo,
     canRedo,
     history,
-    currentAction: state.present,
+    currentAction: state.present
   };
 }

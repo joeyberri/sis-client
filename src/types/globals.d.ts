@@ -7,17 +7,17 @@ declare global {
   // ============================================
   // SIS Custom Features
   // ============================================
-  
+
   /**
    * Features represent logical groupings of permissions in the SIS
    * These map to features created in Clerk Dashboard
    */
-  type SISFeature = 
-    | 'classes' 
-    | 'grades' 
-    | 'attendance' 
-    | 'assessments' 
-    | 'fees' 
+  type SISFeature =
+    | 'classes'
+    | 'grades'
+    | 'attendance'
+    | 'assessments'
+    | 'fees'
     | 'payments'
     | 'counselor_notes'
     | 'behavioral'
@@ -32,18 +32,28 @@ declare global {
   /**
    * Actions that can be performed on features
    */
-  type SISAction = 'read' | 'manage' | 'create' | 'update' | 'delete' | 'grade' | 'generate' | 'export';
+  type SISAction =
+    | 'read'
+    | 'manage'
+    | 'create'
+    | 'update'
+    | 'delete'
+    | 'grade'
+    | 'generate'
+    | 'export';
 
   /**
-   * Custom Permission format: org:<feature>_<action>
+   * Custom Permission format: org:<feature>:<action> or org:<feature>_<action>
    * These are included in session claims and can be checked with has()
    */
-  type SISPermission = `org:${SISFeature}_${SISAction}`;
+  type SISPermission =
+    | `org:${SISFeature}:${SISAction}`
+    | `org:${SISFeature}_${SISAction}`;
 
   // ============================================
   // Clerk System Permissions
   // ============================================
-  
+
   /**
    * Built-in Clerk system permissions
    * WARNING: These are NOT included in session claims
@@ -67,30 +77,35 @@ declare global {
   // ============================================
   // Organization Roles
   // ============================================
-  
+
   /**
    * SIS-specific organization roles
    * Format: org:<role_name>
    */
-  type SISRole = 
-    | 'org:admin' 
-    | 'org:teacher' 
-    | 'org:student' 
-    | 'org:parent' 
-    | 'org:counselor' 
+  type SISRole =
+    | 'org:admin'
+    | 'org:teacher'
+    | 'org:student'
+    | 'org:parent'
+    | 'org:counselor'
     | 'org:accountant'
     | 'org:member'; // Default Clerk role
 
   // ============================================
   // Organization Metadata Types
   // ============================================
-  
+
   /**
    * Public metadata stored on Organization
    * Accessible from frontend via organization.publicMetadata
    */
   interface SchoolPublicMetadata {
-    schoolType?: 'primary' | 'secondary' | 'combined' | 'university' | 'vocational';
+    schoolType?:
+      | 'primary'
+      | 'secondary'
+      | 'combined'
+      | 'university'
+      | 'vocational';
     country?: string;
     educationLevel?: string;
     templateId?: string;
@@ -137,17 +152,17 @@ declare global {
     subjects?: string[];
     classesAssigned?: string[];
     employeeId?: string;
-    
+
     // For students
     studentId?: string;
     classId?: string;
     enrollmentDate?: string;
     guardianIds?: string[];
-    
+
     // For parents
     childrenIds?: string[];
     relationship?: 'father' | 'mother' | 'guardian' | 'other';
-    
+
     // Common
     joinedAt?: string;
     status?: 'active' | 'inactive' | 'suspended';
@@ -156,7 +171,7 @@ declare global {
   // ============================================
   // Auth Object Types
   // ============================================
-  
+
   /**
    * Clerk authorization parameters for has() helper
    */
@@ -182,7 +197,7 @@ declare global {
   // ============================================
   // Role-Permission Mapping
   // ============================================
-  
+
   /**
    * Maps each role to its default permissions
    */
@@ -191,11 +206,11 @@ declare global {
   // ============================================
   // Dashboard Types
   // ============================================
-  
+
   /**
    * Role-specific dashboard routes
    */
-  type DashboardRoute = 
+  type DashboardRoute =
     | '/dashboard/admin'
     | '/dashboard/teacher'
     | '/dashboard/student'
@@ -226,12 +241,12 @@ declare module '@clerk/types' {
     org_academic_year?: string;
     org_current_term?: string;
     org_timezone?: string;
-    
-    // User shortcuts  
+
+    // User shortcuts
     user_display_name?: string;
     user_avatar?: string;
     user_role?: SISRole;
-    
+
     // Membership shortcuts
     membership_status?: 'active' | 'inactive' | 'suspended';
     membership_joined_at?: string;

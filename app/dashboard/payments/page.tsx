@@ -1,30 +1,55 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useUser } from '@/context/user/user-context';
+import { useAuth } from '@clerk/nextjs';
 import PageContainer from '@/components/layout/page-container';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
 import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
+  TableRow
 } from '@/components/ui/table';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuTrigger,
+  DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { apiClient } from '@/lib/api/client';
+import apiClient from '@/lib/api/client';
 import { EmptyState, ErrorState, LoadingState } from '@/components/empty-state';
-import { Plus, MoreHorizontal, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
+import {
+  Plus,
+  MoreHorizontal,
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+  Receipt
+} from 'lucide-react';
+import { toast } from 'sonner';
 
 interface Payment {
   id: string;
@@ -38,19 +63,64 @@ interface Payment {
   reference: string;
 }
 
+interface Student {
+  id: string;
+  firstName: string;
+  lastName: string;
+}
+
+interface FeeStructure {
+  id: string;
+  name: string;
+  amount: number;
+}
+
 export default function PaymentsPage() {
   const { isAdmin } = useUser();
+  const { getToken } = useAuth();
+
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [feeStructures, setFeeStructures] = useState<FeeStructure[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
-  const fetchPayments = async () => {
+  const [recordDialogOpen, setRecordDialogOpen] = useState(false);
+  const [newPayment, setNewPayment] = useState({
+    studentId: '',
+    feeStructureId: '',
+    amount: '',
+    method: 'Cash' as string,
+    reference: ''
+  });
+
+  // Set auth token
+  useEffect(() => {
+    const setToken = async () => {
+      const token = await getToken();
+      if (token) {
+        apiClient.setAuthToken(token);
+      }
+    };
+    setToken();
+  }, [getToken]);
+
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await apiClient.getPayments();
-      setPayments(Array.isArray(data) ? data : []);
+      const [paymentsRes, studentsRes, feesRes] = await Promise.all([
+        apiClient.getPayments().catch(() => []),
+        apiClient.getStudents().catch(() => ({ data: [] })),
+        apiClient.getFeeStructures().catch(() => ({ data: [] }))
+      ]);
+
+      setPayments(
+        Array.isArray(paymentsRes) ? paymentsRes : paymentsRes?.data || []
+      );
+      setStudents(studentsRes.data || []);
+      setFeeStructures(feesRes.data || []);
       setError(null);
     } catch (err) {
       setError('Failed to load payments. Please try again.');
@@ -58,20 +128,70 @@ export default function PaymentsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (isAdmin) {
-      fetchPayments();
+      fetchData();
     }
-  }, [isAdmin]);
+  }, [isAdmin, fetchData]);
+
+  const handleRecordPayment = async () => {
+    if (!newPayment.studentId || !newPayment.amount) {
+      toast.error('Please fill in student and amount');
+      return;
+    }
+
+    try {
+      await apiClient.recordFeePayment({
+        studentId: newPayment.studentId,
+        feeStructureId: newPayment.feeStructureId || undefined,
+        amount: parseFloat(newPayment.amount),
+        paymentMethod: newPayment.method,
+        reference: newPayment.reference || undefined
+      });
+      toast.success('Payment recorded successfully');
+      setRecordDialogOpen(false);
+      setNewPayment({
+        studentId: '',
+        feeStructureId: '',
+        amount: '',
+        method: 'Cash',
+        reference: ''
+      });
+      fetchData();
+    } catch (err) {
+      console.error('Failed to record payment:', err);
+      toast.error('Failed to record payment');
+    }
+  };
+
+  const handleReconcile = async (paymentId: string) => {
+    try {
+      await apiClient.reconcilePayment(paymentId);
+      toast.success('Payment reconciled');
+      fetchData();
+    } catch (err) {
+      toast.error('Failed to reconcile payment');
+    }
+  };
+
+  const handleCancel = async (paymentId: string) => {
+    try {
+      await apiClient.cancelPayment(paymentId);
+      toast.success('Payment cancelled');
+      fetchData();
+    } catch (err) {
+      toast.error('Failed to cancel payment');
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, string> = {
-      'Completed': 'bg-green-100 text-green-700',
-      'Pending': 'bg-yellow-100 text-yellow-700',
-      'Failed': 'bg-red-100 text-red-700',
-      'Reconciled': 'bg-blue-100 text-blue-700',
+      Completed: 'bg-green-100 text-green-700',
+      Pending: 'bg-yellow-100 text-yellow-700',
+      Failed: 'bg-red-100 text-red-700',
+      Reconciled: 'bg-blue-100 text-blue-700'
     };
     return variants[status] || 'bg-gray-100 text-gray-700';
   };
@@ -79,13 +199,13 @@ export default function PaymentsPage() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'Completed':
-        return <CheckCircle2 className="h-4 w-4 text-green-600" />;
+        return <CheckCircle2 className='h-4 w-4 text-green-600' />;
       case 'Pending':
-        return <Clock className="h-4 w-4 text-yellow-600" />;
+        return <Clock className='h-4 w-4 text-yellow-600' />;
       case 'Failed':
-        return <AlertCircle className="h-4 w-4 text-red-600" />;
+        return <AlertCircle className='h-4 w-4 text-red-600' />;
       case 'Reconciled':
-        return <CheckCircle2 className="h-4 w-4 text-blue-600" />;
+        return <CheckCircle2 className='h-4 w-4 text-blue-600' />;
       default:
         return null;
     }
@@ -93,67 +213,93 @@ export default function PaymentsPage() {
 
   const filteredPayments = payments.filter((payment) => {
     const matchSearch =
-      payment.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      payment.studentId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      payment.reference.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchFilter = filterStatus === 'all' || payment.status === filterStatus;
+      payment.studentName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      payment.studentId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      payment.reference?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchFilter =
+      filterStatus === 'all' || payment.status === filterStatus;
     return matchSearch && matchFilter;
   });
 
   const totalRevenue = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
-  const completedCount = payments.filter((p) => p.status === 'Completed' || p.status === 'Reconciled').length;
+  const completedCount = payments.filter(
+    (p) => p.status === 'Completed' || p.status === 'Reconciled'
+  ).length;
   const pendingAmount = payments
     .filter((p) => p.status === 'Pending')
     .reduce((sum, p) => sum + (p.amount || 0), 0);
 
-  if (!isAdmin) return (
-    <PageContainer>
-      <ErrorState 
-        title="Access Denied" 
-        description="You don't have permission to view payments."
-        onRetry={() => window.location.reload()}
-      />
-    </PageContainer>
-  );
+  if (!isAdmin)
+    return (
+      <PageContainer>
+        <ErrorState
+          title='Access Denied'
+          description="You don't have permission to view payments."
+          onRetry={() => window.location.reload()}
+        />
+      </PageContainer>
+    );
 
-  if (loading && payments.length === 0) return <LoadingState title="Loading Payments..." description="Fetching transaction history..." />;
+  if (loading && payments.length === 0)
+    return (
+      <LoadingState
+        title='Loading Payments...'
+        description='Fetching transaction history...'
+      />
+    );
 
   return (
     <PageContainer>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className='space-y-6'>
+        <div className='flex items-center justify-between'>
           <div>
-            <h1 className="text-3xl font-bold">Payments & Reconciliation</h1>
-            <p className="text-sm text-muted-foreground mt-1">Track and reconcile student fee payments</p>
+            <h1 className='text-3xl font-bold'>Payments & Reconciliation</h1>
+            <p className='text-muted-foreground mt-1 text-sm'>
+              Track and reconcile student fee payments
+            </p>
           </div>
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" /> Record Payment
+          <Button className='gap-2' onClick={() => setRecordDialogOpen(true)}>
+            <Plus className='h-4 w-4' /> Record Payment
           </Button>
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className='grid grid-cols-1 gap-4 md:grid-cols-3'>
           <Card>
-            <CardContent className="pt-6">
-              <div className="flex flex-col gap-1">
-                <p className="text-sm text-muted-foreground">Total Revenue</p>
-                <p className="text-3xl font-bold">${totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            <CardContent className='pt-6'>
+              <div className='flex flex-col gap-1'>
+                <p className='text-muted-foreground text-sm'>Total Revenue</p>
+                <p className='text-3xl font-bold'>
+                  $
+                  {totalRevenue.toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                  })}
+                </p>
               </div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="pt-6">
-              <div className="flex flex-col gap-1">
-                <p className="text-sm text-muted-foreground">Completed Payments</p>
-                <p className="text-3xl font-bold">{completedCount}</p>
+            <CardContent className='pt-6'>
+              <div className='flex flex-col gap-1'>
+                <p className='text-muted-foreground text-sm'>
+                  Completed Payments
+                </p>
+                <p className='text-3xl font-bold'>{completedCount}</p>
               </div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="pt-6">
-              <div className="flex flex-col gap-1">
-                <p className="text-sm text-muted-foreground">Pending Amount</p>
-                <p className="text-3xl font-bold">${pendingAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            <CardContent className='pt-6'>
+              <div className='flex flex-col gap-1'>
+                <p className='text-muted-foreground text-sm'>Pending Amount</p>
+                <p className='text-3xl font-bold'>
+                  $
+                  {pendingAmount.toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                  })}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -164,40 +310,46 @@ export default function PaymentsPage() {
           <CardHeader>
             <CardTitle>Transaction History</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-2 flex-col md:flex-row">
+          <CardContent className='space-y-4'>
+            <div className='flex flex-col gap-2 md:flex-row'>
               <Input
-                placeholder="Search by student name, ID, or reference..."
+                placeholder='Search by student name, ID, or reference...'
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1"
+                className='flex-1'
               />
-              <div className="flex gap-1 flex-wrap">
-                {['all', 'Completed', 'Pending', 'Reconciled', 'Failed'].map((status) => (
-                  <Button
-                    key={status}
-                    variant={filterStatus === status ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setFilterStatus(status)}
-                  >
-                    {status === 'all' ? 'All' : status}
-                  </Button>
-                ))}
+              <div className='flex flex-wrap gap-1'>
+                {['all', 'Completed', 'Pending', 'Reconciled', 'Failed'].map(
+                  (status) => (
+                    <Button
+                      key={status}
+                      variant={filterStatus === status ? 'default' : 'outline'}
+                      size='sm'
+                      onClick={() => setFilterStatus(status)}
+                    >
+                      {status === 'all' ? 'All' : status}
+                    </Button>
+                  )
+                )}
               </div>
             </div>
 
             {/* Payments Table */}
             {filteredPayments.length === 0 ? (
               error && payments.length === 0 ? (
-                <ErrorState 
-                  title="Failed to Load Payments" 
+                <ErrorState
+                  title='Failed to Load Payments'
                   description={error}
-                  onRetry={fetchPayments}
+                  onRetry={fetchData}
                 />
               ) : (
-                <EmptyState 
-                  title="No payments found" 
-                  description={searchQuery ? "Try adjusting your search criteria" : "Start by recording the first payment"}
+                <EmptyState
+                  title='No payments found'
+                  description={
+                    searchQuery
+                      ? 'Try adjusting your search criteria'
+                      : 'Start by recording the first payment'
+                  }
                 />
               )
             ) : (
@@ -211,7 +363,7 @@ export default function PaymentsPage() {
                     <TableHead>Date</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Reference</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className='text-right'>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -219,35 +371,69 @@ export default function PaymentsPage() {
                     <TableRow key={payment.id}>
                       <TableCell>
                         <div>
-                          <p className="font-medium">{payment.studentName}</p>
-                          <p className="text-sm text-muted-foreground">{payment.studentId}</p>
+                          <p className='font-medium'>{payment.studentName}</p>
+                          <p className='text-muted-foreground text-sm'>
+                            {payment.studentId}
+                          </p>
                         </div>
                       </TableCell>
-                      <TableCell className="font-semibold">
-                        ${payment.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      <TableCell className='font-semibold'>
+                        $
+                        {payment.amount?.toLocaleString('en-US', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        })}
                       </TableCell>
                       <TableCell>{payment.feeType}</TableCell>
                       <TableCell>{payment.method}</TableCell>
-                      <TableCell>{new Date(payment.date).toLocaleDateString()}</TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
+                        {new Date(payment.date).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <div className='flex items-center gap-2'>
                           {getStatusIcon(payment.status)}
-                          <Badge className={getStatusBadge(payment.status)}>{payment.status}</Badge>
+                          <Badge className={getStatusBadge(payment.status)}>
+                            {payment.status}
+                          </Badge>
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{payment.reference}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className='text-muted-foreground text-sm'>
+                        {payment.reference}
+                      </TableCell>
+                      <TableCell className='text-right'>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
+                            <Button variant='ghost' size='sm'>
+                              <MoreHorizontal className='h-4 w-4' />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
+                          <DropdownMenuContent align='end'>
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem>View Receipt</DropdownMenuItem>
-                            <DropdownMenuItem>Mark as Reconciled</DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive">Cancel Payment</DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                toast.info('Receipt feature coming soon')
+                              }
+                            >
+                              <Receipt className='mr-2 h-4 w-4' />
+                              View Receipt
+                            </DropdownMenuItem>
+                            {payment.status === 'Completed' && (
+                              <DropdownMenuItem
+                                onClick={() => handleReconcile(payment.id)}
+                              >
+                                <CheckCircle2 className='mr-2 h-4 w-4' />
+                                Mark as Reconciled
+                              </DropdownMenuItem>
+                            )}
+                            {payment.status === 'Pending' && (
+                              <DropdownMenuItem
+                                onClick={() => handleCancel(payment.id)}
+                                className='text-destructive'
+                              >
+                                <AlertCircle className='mr-2 h-4 w-4' />
+                                Cancel Payment
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -258,6 +444,111 @@ export default function PaymentsPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Record Payment Dialog */}
+        <Dialog open={recordDialogOpen} onOpenChange={setRecordDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Record Payment</DialogTitle>
+              <DialogDescription>
+                Record a new fee payment from a student
+              </DialogDescription>
+            </DialogHeader>
+            <div className='space-y-4'>
+              <div>
+                <Label>Student</Label>
+                <Select
+                  value={newPayment.studentId}
+                  onValueChange={(value) =>
+                    setNewPayment({ ...newPayment, studentId: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder='Select student' />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {students.map((student) => (
+                      <SelectItem key={student.id} value={student.id}>
+                        {student.firstName} {student.lastName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Fee Type (Optional)</Label>
+                <Select
+                  value={newPayment.feeStructureId}
+                  onValueChange={(value) =>
+                    setNewPayment({ ...newPayment, feeStructureId: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder='Select fee type' />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value=''>General Payment</SelectItem>
+                    {feeStructures.map((fee) => (
+                      <SelectItem key={fee.id} value={fee.id}>
+                        {fee.name} - ${fee.amount}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Amount</Label>
+                <Input
+                  type='number'
+                  value={newPayment.amount}
+                  onChange={(e) =>
+                    setNewPayment({ ...newPayment, amount: e.target.value })
+                  }
+                  placeholder='0.00'
+                />
+              </div>
+              <div>
+                <Label>Payment Method</Label>
+                <Select
+                  value={newPayment.method}
+                  onValueChange={(value) =>
+                    setNewPayment({ ...newPayment, method: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value='Cash'>Cash</SelectItem>
+                    <SelectItem value='Bank Transfer'>Bank Transfer</SelectItem>
+                    <SelectItem value='Credit Card'>Credit Card</SelectItem>
+                    <SelectItem value='Check'>Check</SelectItem>
+                    <SelectItem value='Online'>Online</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Reference (Optional)</Label>
+                <Input
+                  value={newPayment.reference}
+                  onChange={(e) =>
+                    setNewPayment({ ...newPayment, reference: e.target.value })
+                  }
+                  placeholder='Transaction reference'
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant='outline'
+                onClick={() => setRecordDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleRecordPayment}>Record Payment</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </PageContainer>
   );
