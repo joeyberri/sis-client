@@ -2,34 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useUser } from '@/context/user/user-context';
-import PageContainer from '@/components/layout/page-container';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuCheckboxItem
-} from '@/components/ui/dropdown-menu';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,34 +15,30 @@ import {
   AlertDialogTitle
 } from '@/components/ui/alert-dialog';
 import {
-  Plus,
-  Search,
-  MoreHorizontal,
-  Edit,
-  Trash2,
-  Eye,
-  GraduationCap,
   ChevronUp,
   ChevronDown,
-  Loader2,
-  Upload
+  Eye,
+  Edit,
+  Trash2,
+  UserX,
+  UserCheck
 } from 'lucide-react';
-import {
-  ColumnDef,
-  ColumnFiltersState,
-  SortingState,
-  VisibilityState,
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable
-} from '@tanstack/react-table';
-import { EmptyState, ErrorState, LoadingState } from '@/components/empty-state';
 import { toast } from 'sonner';
 
-// Import dialogs and sheets
+// Import common components
+import {
+  DataManagementPage,
+  StatusBadge,
+  ActionDropdown,
+  createViewAction,
+  createEditAction,
+  createDeleteAction,
+  createSuspendAction,
+  createActivateAction,
+  FilterOption
+} from '@/components/common';
+
+// Import existing dialogs and sheets
 import { AddTeacherDialog } from '@/components/forms/add-teacher-dialog';
 import { EditTeacherDialog } from '@/components/forms/edit-teacher-dialog';
 import { TeacherDetailsSheet } from '@/components/sheets/teacher-details-sheet';
@@ -91,29 +61,13 @@ interface Teacher {
   updated_at?: string;
 }
 
-// Helper function for status badges
-const getStatusBadge = (status: Teacher['status']) => {
-  switch (status) {
-    case 'active':
-      return <Badge variant='default'>Active</Badge>;
-    case 'inactive':
-      return <Badge variant='secondary'>Inactive</Badge>;
-    case 'on-leave':
-      return <Badge variant='outline'>On Leave</Badge>;
-    default:
-      return <Badge variant='outline'>Unknown</Badge>;
-  }
-};
-
-// Action callbacks interface for column definitions
-interface ActionCallbacks {
-  onView: (teacher: Teacher) => void;
-  onEdit: (teacher: Teacher) => void;
-  onDelete: (teacher: Teacher) => void;
-}
-
-// Column definitions creator function
-const createColumns = (callbacks: ActionCallbacks): ColumnDef<Teacher>[] => [
+// Column definitions
+const createColumns = (
+  onView: (teacher: Teacher) => void,
+  onEdit: (teacher: Teacher) => void,
+  onDelete: (teacher: Teacher) => void,
+  onToggleStatus: (teacher: Teacher) => void
+): ColumnDef<Teacher>[] => [
   {
     accessorKey: 'name',
     header: ({ column }) => {
@@ -193,8 +147,9 @@ const createColumns = (callbacks: ActionCallbacks): ColumnDef<Teacher>[] => [
     accessorKey: 'status',
     header: 'Status',
     cell: ({ row }) => {
-      const status = row.getValue('status') as Teacher['status'];
-      return getStatusBadge(status);
+      const status =
+        (row.getValue('status') as Teacher['status']) || 'inactive';
+      return <StatusBadge status={status} />;
     }
   },
   {
@@ -202,36 +157,16 @@ const createColumns = (callbacks: ActionCallbacks): ColumnDef<Teacher>[] => [
     enableHiding: false,
     cell: ({ row }) => {
       const teacher = row.original;
+      const actions = [
+        createViewAction(() => onView(teacher)),
+        createEditAction(() => onEdit(teacher)),
+        teacher.status === 'active'
+          ? createSuspendAction(() => onToggleStatus(teacher))
+          : createActivateAction(() => onToggleStatus(teacher)),
+        createDeleteAction(() => onDelete(teacher))
+      ];
 
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant='ghost' className='h-8 w-8 p-0'>
-              <span className='sr-only'>Open menu</span>
-              <MoreHorizontal className='h-4 w-4' />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align='end'>
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => callbacks.onView(teacher)}>
-              <Eye className='mr-2 h-4 w-4' />
-              View Profile
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => callbacks.onEdit(teacher)}>
-              <Edit className='mr-2 h-4 w-4' />
-              Edit Teacher
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className='text-destructive'
-              onClick={() => callbacks.onDelete(teacher)}
-            >
-              <Trash2 className='mr-2 h-4 w-4' />
-              Remove Teacher
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
+      return <ActionDropdown actions={actions} />;
     }
   }
 ];
@@ -241,21 +176,51 @@ export default function TeachersPage() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [departmentFilter, setDepartmentFilter] = useState('all');
+
+  // Dialog states
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
-
-  // Edit/View/Delete state
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isViewSheetOpen, setIsViewSheetOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // TanStack Table setup
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = useState({});
+  // Filter options
+  const statusFilterOptions: FilterOption[] = [
+    { value: 'active', label: 'Active' },
+    { value: 'inactive', label: 'Inactive' },
+    { value: 'on-leave', label: 'On Leave' }
+  ];
+
+  const departmentFilterOptions: FilterOption[] = [
+    { value: 'Mathematics', label: 'Mathematics' },
+    { value: 'Science', label: 'Science' },
+    { value: 'English', label: 'English' },
+    { value: 'History', label: 'History' },
+    { value: 'Arts', label: 'Arts' },
+    { value: 'Physical Education', label: 'Physical Education' }
+  ];
+
+  // Filter teachers based on search and filters
+  const filteredTeachers = teachers.filter((teacher) => {
+    const matchesSearch =
+      !searchQuery ||
+      teacher.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      teacher.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (teacher.subject &&
+        teacher.subject.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    const matchesStatus =
+      statusFilter === 'all' || teacher.status === statusFilter;
+    const matchesDepartment =
+      departmentFilter === 'all' || teacher.department === departmentFilter;
+
+    return matchesSearch && matchesStatus && matchesDepartment;
+  });
 
   // Action handlers
   const handleViewTeacher = useCallback((teacher: Teacher) => {
@@ -266,6 +231,20 @@ export default function TeachersPage() {
   const handleEditTeacher = useCallback((teacher: Teacher) => {
     setSelectedTeacher(teacher);
     setIsEditDialogOpen(true);
+  }, []);
+
+  const handleToggleStatus = useCallback(async (teacher: Teacher) => {
+    try {
+      const newStatus = teacher.status === 'active' ? 'inactive' : 'active';
+      await apiClient.updateTeacher(teacher.id, { status: newStatus as any });
+      toast.success(
+        `Teacher ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully`
+      );
+      await fetchTeachers();
+    } catch (err) {
+      console.error('Error updating teacher status:', err);
+      toast.error('Failed to update teacher status');
+    }
   }, []);
 
   const handleDeletePrompt = useCallback((teacher: Teacher) => {
@@ -279,13 +258,13 @@ export default function TeachersPage() {
     setIsDeleting(true);
     try {
       await apiClient.deleteTeacher(selectedTeacher.id);
-      toast.success('Teacher removed successfully');
+      toast.success('Teacher deleted successfully');
       await fetchTeachers();
       setIsDeleteDialogOpen(false);
       setSelectedTeacher(null);
     } catch (err) {
       console.error('Error deleting teacher:', err);
-      toast.error('Failed to remove teacher');
+      toast.error('Failed to delete teacher');
     } finally {
       setIsDeleting(false);
     }
@@ -305,32 +284,6 @@ export default function TeachersPage() {
       throw err;
     }
   };
-
-  // Create columns with action callbacks
-  const columns = createColumns({
-    onView: handleViewTeacher,
-    onEdit: handleEditTeacher,
-    onDelete: handleDeletePrompt
-  });
-
-  const table = useReactTable({
-    data: teachers,
-    columns,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
-    state: {
-      sorting,
-      columnFilters,
-      columnVisibility,
-      rowSelection
-    }
-  });
 
   const fetchTeachers = async () => {
     try {
@@ -356,32 +309,18 @@ export default function TeachersPage() {
   ) => {
     try {
       await apiClient.createTeacher(teacherData);
-      await fetchTeachers(); // Refresh the list
+      await fetchTeachers();
       setIsAddDialogOpen(false);
     } catch (err) {
       console.error('Error adding teacher:', err);
-      throw err; // Re-throw to let the dialog handle the error
+      throw err;
     }
   };
 
   const handleBulkUpload = async (data: any[]) => {
     try {
-      const response = await apiClient.bulkUpsert('teachers', data);
-
-      // Check for errors in the bulk upload response
-      if (response.errors && response.errors.length > 0) {
-        console.error('Bulk upload completed with errors:', response.errors);
-        // Show a warning but don't fail the operation
-        alert(
-          `Bulk upload completed. ${response.successful} teachers created/updated, ${response.failed} failed. Check console for details.`
-        );
-      } else {
-        console.log(
-          `Bulk upload successful: ${response.successful} teachers processed`
-        );
-      }
-
-      await fetchTeachers(); // Refresh the list
+      await apiClient.bulkUpsert('teachers', data);
+      await fetchTeachers();
       setIsBulkUploadOpen(false);
     } catch (err) {
       console.error('Error bulk uploading teachers:', err);
@@ -391,331 +330,117 @@ export default function TeachersPage() {
 
   if (!isAdmin) {
     return (
-      <PageContainer>
-        <EmptyState
-          variant='error'
-          title='Access Denied'
-          description="You don't have permission to view teacher records. Please contact an administrator."
-        />
-      </PageContainer>
+      <div className='flex h-screen items-center justify-center'>
+        <div className='text-center'>
+          <h1 className='text-2xl font-bold text-gray-900'>Access Denied</h1>
+          <p className='mt-2 text-gray-600'>
+            You don't have permission to view this page.
+          </p>
+        </div>
+      </div>
     );
   }
 
-  if (loading) {
-    return (
-      <PageContainer>
-        <LoadingState
-          title='Loading teachers...'
-          description='Fetching your teacher records...'
-        />
-      </PageContainer>
-    );
-  }
+  const columns = createColumns(
+    handleViewTeacher,
+    handleEditTeacher,
+    handleDeletePrompt,
+    handleToggleStatus
+  );
 
-  if (error && teachers.length === 0) {
-    return (
-      <PageContainer>
-        <ErrorState
-          title='Failed to load teachers'
-          description="We couldn't fetch your teacher records. Please check your connection and try again."
-          onRetry={fetchTeachers}
-        />
-      </PageContainer>
-    );
-  }
+  const filters = [
+    {
+      key: 'status',
+      label: 'Status',
+      options: statusFilterOptions,
+      value: statusFilter,
+      onChange: setStatusFilter
+    },
+    {
+      key: 'department',
+      label: 'Department',
+      options: departmentFilterOptions,
+      value: departmentFilter,
+      onChange: setDepartmentFilter
+    }
+  ];
 
   return (
-    <PageContainer>
-      <div className='space-y-6'>
-        <div className='flex items-center justify-between'>
-          <div>
-            <h1 className='text-3xl font-bold'>Teachers Management</h1>
-            <p className='text-muted-foreground'>
-              Manage teacher profiles, subjects, and departmental assignments
-            </p>
-          </div>
-          <div className='flex gap-2'>
-            <Button onClick={() => setIsBulkUploadOpen(true)} variant='outline'>
-              <Upload className='mr-2 h-4 w-4' />
-              Bulk Upload
-            </Button>
-            <Button onClick={() => setIsAddDialogOpen(true)}>
-              <Plus className='mr-2 h-4 w-4' />
-              Add Teacher
-            </Button>
-          </div>
-        </div>
+    <>
+      <DataManagementPage
+        title='Teachers'
+        description='Manage teacher records, subjects, and departmental information'
+        data={filteredTeachers}
+        columns={columns}
+        loading={loading}
+        error={error}
+        searchPlaceholder='Search teachers by name, email, or subject...'
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        filters={filters}
+        showAddButton={true}
+        showBulkUpload={true}
+        onAdd={() => setIsAddDialogOpen(true)}
+        onBulkUpload={() => setIsBulkUploadOpen(true)}
+        addButtonLabel='Add Teacher'
+      />
 
-        {/* Show empty state if no teachers */}
-        {teachers.length === 0 ? (
-          <EmptyState
-            title='No teachers yet'
-            description='Start by adding your first teacher to the system.'
-            action={{
-              label: 'Add First Teacher',
-              onClick: () => setIsAddDialogOpen(true)
-            }}
-          />
-        ) : (
-          <>
-            {/* Summary Cards */}
-            <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-4'>
-              <Card>
-                <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                  <CardTitle className='text-sm font-medium'>
-                    Total Teachers
-                  </CardTitle>
-                  <GraduationCap className='text-muted-foreground h-4 w-4' />
-                </CardHeader>
-                <CardContent>
-                  <div className='text-2xl font-bold'>{teachers.length}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                  <CardTitle className='text-sm font-medium'>
-                    Active Teachers
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className='text-2xl font-bold'>
-                    {teachers.filter((t) => t.status === 'active').length}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                  <CardTitle className='text-sm font-medium'>
-                    On Leave
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className='text-2xl font-bold'>
-                    {teachers.filter((t) => t.status === 'on-leave').length}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                  <CardTitle className='text-sm font-medium'>
-                    Departments
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className='text-2xl font-bold'>
-                    {new Set(teachers.map((t) => t.department)).size}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Teachers Table */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Teachers</CardTitle>
-                <CardDescription>
-                  A list of all teaching staff and their assignments
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className='flex items-center py-4'>
-                  <Input
-                    placeholder='Filter teachers...'
-                    value={
-                      (table.getColumn('name')?.getFilterValue() as string) ??
-                      ''
-                    }
-                    onChange={(event) =>
-                      table
-                        .getColumn('name')
-                        ?.setFilterValue(event.target.value)
-                    }
-                    className='max-w-sm'
-                  />
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant='outline' className='ml-auto'>
-                        Columns <ChevronDown className='ml-2 h-4 w-4' />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align='end'>
-                      {table
-                        .getAllColumns()
-                        .filter((column) => column.getCanHide())
-                        .map((column) => {
-                          return (
-                            <DropdownMenuCheckboxItem
-                              key={column.id}
-                              className='capitalize'
-                              checked={column.getIsVisible()}
-                              onCheckedChange={(value) =>
-                                column.toggleVisibility(!!value)
-                              }
-                            >
-                              {column.id}
-                            </DropdownMenuCheckboxItem>
-                          );
-                        })}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-                <div className='rounded-md border'>
-                  <Table>
-                    <TableHeader>
-                      {table.getHeaderGroups().map((headerGroup) => (
-                        <TableRow key={headerGroup.id}>
-                          {headerGroup.headers.map((header) => {
-                            return (
-                              <TableHead key={header.id}>
-                                {header.isPlaceholder
-                                  ? null
-                                  : flexRender(
-                                      header.column.columnDef.header,
-                                      header.getContext()
-                                    )}
-                              </TableHead>
-                            );
-                          })}
-                        </TableRow>
-                      ))}
-                    </TableHeader>
-                    <TableBody>
-                      {table.getRowModel().rows?.length ? (
-                        table.getRowModel().rows.map((row) => (
-                          <TableRow
-                            key={row.id}
-                            data-state={row.getIsSelected() && 'selected'}
-                          >
-                            {row.getVisibleCells().map((cell) => (
-                              <TableCell key={cell.id}>
-                                {flexRender(
-                                  cell.column.columnDef.cell,
-                                  cell.getContext()
-                                )}
-                              </TableCell>
-                            ))}
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell
-                            colSpan={columns.length}
-                            className='h-24 text-center'
-                          >
-                            No results.
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-                <div className='flex items-center justify-end space-x-2 py-4'>
-                  <div className='text-muted-foreground flex-1 text-sm'>
-                    {table.getFilteredSelectedRowModel().rows.length} of{' '}
-                    {table.getFilteredRowModel().rows.length} row(s) selected.
-                  </div>
-                  <div className='space-x-2'>
-                    <Button
-                      variant='outline'
-                      size='sm'
-                      onClick={() => table.previousPage()}
-                      disabled={!table.getCanPreviousPage()}
-                    >
-                      Previous
-                    </Button>
-                    <Button
-                      variant='outline'
-                      size='sm'
-                      onClick={() => table.nextPage()}
-                      disabled={!table.getCanNextPage()}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </>
-        )}
-      </div>
-
-      {/* Add Teacher Dialog */}
+      {/* Dialogs and Sheets */}
       <AddTeacherDialog
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
         onSubmit={handleAddTeacher}
       />
 
-      {/* Edit Teacher Dialog */}
-      {selectedTeacher && (
-        <EditTeacherDialog
-          open={isEditDialogOpen}
-          onOpenChange={(open) => {
-            setIsEditDialogOpen(open);
-            if (!open) setSelectedTeacher(null);
-          }}
-          teacher={selectedTeacher}
-          onSubmit={handleUpdateTeacher}
-        />
-      )}
-
-      {/* View Teacher Details Sheet */}
-      {selectedTeacher && (
-        <TeacherDetailsSheet
-          open={isViewSheetOpen}
-          onOpenChange={(open) => {
-            setIsViewSheetOpen(open);
-            if (!open) setSelectedTeacher(null);
-          }}
-          teacher={selectedTeacher}
-          onEdit={() => {
-            setIsViewSheetOpen(false);
-            setIsEditDialogOpen(true);
-          }}
-        />
-      )}
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove Teacher</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to remove {selectedTeacher?.name}? This
-              action cannot be undone. All associated records including class
-              assignments and schedules will also be removed.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteConfirm}
-              disabled={isDeleting}
-              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
-            >
-              {isDeleting ? (
-                <>
-                  <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                  Removing...
-                </>
-              ) : (
-                'Remove'
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Bulk Upload Dialog */}
       <BulkUploadDialog
         open={isBulkUploadOpen}
         onOpenChange={setIsBulkUploadOpen}
         resource='teachers'
         onUpload={handleBulkUpload}
       />
-    </PageContainer>
+
+      {selectedTeacher && (
+        <>
+          <EditTeacherDialog
+            open={isEditDialogOpen}
+            onOpenChange={setIsEditDialogOpen}
+            teacher={selectedTeacher}
+            onSubmit={handleUpdateTeacher}
+          />
+
+          <TeacherDetailsSheet
+            open={isViewSheetOpen}
+            onOpenChange={setIsViewSheetOpen}
+            teacher={selectedTeacher}
+            onEdit={() => handleEditTeacher(selectedTeacher)}
+          />
+        </>
+      )}
+
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Teacher</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedTeacher?.name}? This
+              action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

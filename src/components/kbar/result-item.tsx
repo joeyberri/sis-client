@@ -1,3 +1,4 @@
+import { Icon } from '@iconify/react';
 import type { ActionId, ActionImpl } from 'kbar';
 import * as React from 'react';
 
@@ -25,44 +26,57 @@ const ResultItem = React.forwardRef(
     return (
       <div
         ref={ref}
-        className={`relative z-10 flex cursor-pointer items-center justify-between px-4 py-3`}
+        className={`relative flex cursor-pointer items-center justify-between px-6 py-4 transition-all ${
+          active ? 'bg-primary/5' : 'bg-transparent'
+        }`}
       >
         {active && (
-          <div
-            id='kbar-result-item'
-            className='border-primary bg-accent/50 absolute inset-0 z-[-1]! border-l-4'
-          ></div>
+          <div className='bg-primary animate-in slide-in-from-left absolute top-0 bottom-0 left-0 w-1 shadow-[0_0_12px_rgba(var(--primary),0.5)] duration-200'></div>
         )}
-        <div className='relative z-10 flex items-center gap-2'>
-          {action.icon && action.icon}
+
+        <div className='flex items-center gap-4'>
+          {action.icon && (
+            <div
+              className={`rounded-xl p-2 transition-all duration-300 ${active ? 'bg-primary text-primary-foreground shadow-primary/20 scale-110 shadow-lg' : 'bg-muted/30 text-muted-foreground'}`}
+            >
+              {action.icon}
+            </div>
+          )}
           <div className='flex flex-col'>
-            <div>
+            <div className='flex items-center gap-1.5'>
               {ancestors.length > 0 &&
                 ancestors.map((ancestor) => (
                   <React.Fragment key={ancestor.id}>
-                    <span className='text-muted-foreground mr-2'>
+                    <span className='text-muted-foreground/30 text-xs font-bold tracking-widest uppercase'>
                       {ancestor.name}
                     </span>
-                    <span className='mr-2'>&rsaquo;</span>
+                    <Icon
+                      icon='solar:alt-arrow-right-linear'
+                      className='text-muted-foreground/20 size-3'
+                    />
                   </React.Fragment>
                 ))}
-              <span>{action.name}</span>
+              <span
+                className={`text-sm font-bold tracking-tight transition-colors ${active ? 'text-foreground' : 'text-muted-foreground'}`}
+              >
+                {action.name}
+              </span>
             </div>
             {action.subtitle && (
-              <span className='text-muted-foreground text-sm'>
+              <span className='text-muted-foreground/40 mt-0.5 text-[10px] leading-none font-black tracking-widest uppercase'>
                 {action.subtitle}
               </span>
             )}
           </div>
         </div>
         {action.shortcut?.length ? (
-          <div className='relative z-10 grid grid-flow-col gap-1'>
+          <div className='flex items-center gap-1.5 opacity-40 transition-opacity group-hover:opacity-100'>
             {action.shortcut.map((sc, i) => (
               <kbd
                 key={sc + i}
-                className='bg-muted flex h-5 items-center gap-1 rounded-md border px-1.5 text-[10px] font-medium'
+                className='bg-muted/50 border-muted-foreground/10 text-muted-foreground flex min-w-[24px] items-center justify-center rounded-md border px-2 py-1 text-[9px] font-black uppercase'
               >
-                {sc}
+                {sc === 'mod' ? '⌘' : sc}
               </kbd>
             ))}
           </div>

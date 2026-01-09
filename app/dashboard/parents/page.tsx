@@ -3,26 +3,21 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useUser } from '@/context/user/user-context';
 import { useAuth } from '@clerk/nextjs';
-import PageContainer from '@/components/layout/page-container';
+import { DataManagementPage } from '@/components/common';
+import { StatusBadge } from '@/components/common';
+import { ActionDropdown } from '@/components/common';
+import { StatsGrid } from '@/components/common';
+import apiClient from '@/lib/api/client';
+import { toast } from 'sonner';
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table';
+  User,
+  Mail,
+  UserPlus,
+  Link2,
+  Edit,
+  Trash2,
+  Loader2
+} from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -39,12 +34,6 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -54,20 +43,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from '@/components/ui/alert-dialog';
-import apiClient from '@/lib/api/client';
-import { EmptyState, ErrorState, LoadingState } from '@/components/empty-state';
-import { toast } from 'sonner';
-import {
-  Plus,
-  Mail,
-  User,
-  MoreHorizontal,
-  Edit,
-  Trash2,
-  UserPlus,
-  Link2,
-  Loader2
-} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface Parent {
   id: string;
@@ -95,7 +73,6 @@ export default function ParentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
 
   // Dialog states
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -104,6 +81,9 @@ export default function ParentsPage() {
   const [parentToDelete, setParentToDelete] = useState<Parent | null>(null);
   const [parentToLink, setParentToLink] = useState<Parent | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Search state
+  const [searchValue, setSearchValue] = useState('');
 
   // Form state
   const [parentForm, setParentForm] = useState({
@@ -149,7 +129,7 @@ export default function ParentsPage() {
 
   const handleCreateParent = async () => {
     if (!parentForm.name || !parentForm.email) {
-      toast.error('Please fill in required fields');
+      toast.error('Name and email are required');
       return;
     }
 
@@ -157,7 +137,7 @@ export default function ParentsPage() {
     try {
       if (editingParent) {
         await apiClient.updateParent(editingParent.id, parentForm);
-        toast.success('Parent updated');
+        toast.success('Parent updated successfully');
       } else {
         await apiClient.createParent(parentForm);
         toast.success('Parent invited successfully');
@@ -180,7 +160,7 @@ export default function ParentsPage() {
     setSubmitting(true);
     try {
       await apiClient.deleteParent(parentToDelete.id);
-      toast.success('Parent removed');
+      toast.success('Parent deleted successfully');
       setParentToDelete(null);
       await fetchParents();
     } catch (err: any) {
@@ -193,7 +173,7 @@ export default function ParentsPage() {
 
   const handleLinkStudent = async () => {
     if (!parentToLink || !selectedStudentId) {
-      toast.error('Please select a student');
+      toast.error('Please select a student to link');
       return;
     }
 
@@ -243,229 +223,146 @@ export default function ParentsPage() {
     setIsLinkDialogOpen(true);
   };
 
-  const filteredParents = parents.filter(
-    (p) =>
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const getAccessBadge = (access: string) => {
-    switch (access) {
-      case 'active':
-        return (
-          <Badge variant='default' className='bg-green-600'>
-            Active
-          </Badge>
-        );
-      case 'pending':
-        return <Badge variant='secondary'>Pending</Badge>;
-      case 'inactive':
-        return <Badge variant='outline'>Inactive</Badge>;
-      default:
-        return <Badge>Unknown</Badge>;
+  const getParentActions = (parent: Parent) => [
+    {
+      label: 'Link Student',
+      icon: <Link2 className='mr-2 h-4 w-4' />,
+      onClick: () => openLinkDialog(parent)
+    },
+    {
+      label: 'Edit',
+      icon: <Edit className='mr-2 h-4 w-4' />,
+      onClick: () => openEditDialog(parent)
+    },
+    {
+      label: 'Delete',
+      icon: <Trash2 className='mr-2 h-4 w-4' />,
+      onClick: () => setParentToDelete(parent),
+      variant: 'destructive' as const
     }
-  };
+  ];
+
+  const columns = [
+    {
+      accessorKey: 'name',
+      header: 'Name',
+      cell: ({ row }: any) => (
+        <div className='font-medium'>{row.original.name}</div>
+      )
+    },
+    {
+      accessorKey: 'email',
+      header: 'Email',
+      cell: ({ row }: any) => (
+        <div className='text-muted-foreground'>{row.original.email}</div>
+      )
+    },
+    {
+      accessorKey: 'phone',
+      header: 'Phone',
+      cell: ({ row }: any) => <div>{row.original.phone || '—'}</div>
+    },
+    {
+      accessorKey: 'relation',
+      header: 'Relation',
+      cell: ({ row }: any) => (
+        <StatusBadge status={row.original.relation} variant='outline' />
+      )
+    },
+    {
+      accessorKey: 'linkedStudents',
+      header: 'Linked Students',
+      cell: ({ row }: any) => (
+        <div className='text-center'>{row.original.linkedStudents || 0}</div>
+      )
+    },
+    {
+      accessorKey: 'portalAccess',
+      header: 'Portal Access',
+      cell: ({ row }: any) => (
+        <StatusBadge
+          status={row.original.portalAccess}
+          customVariants={{
+            active: { variant: 'default', label: 'Active' },
+            pending: { variant: 'secondary', label: 'Pending' },
+            inactive: { variant: 'outline', label: 'Inactive' }
+          }}
+        />
+      )
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      cell: ({ row }: any) => (
+        <ActionDropdown actions={getParentActions(row.original)} />
+      )
+    }
+  ];
+
+  const stats = [
+    {
+      title: 'Total Parents',
+      value: parents.length.toString(),
+      description: 'Registered guardians',
+      icon: <User className='h-6 w-6 text-blue-600' />
+    },
+    {
+      title: 'Active Access',
+      value: parents
+        .filter((p) => p.portalAccess === 'active')
+        .length.toString(),
+      description: 'Active portal users',
+      icon: <User className='h-6 w-6 text-green-600' />,
+      badge: { text: 'Active', variant: 'default' as const }
+    },
+    {
+      title: 'Pending Invites',
+      value: parents
+        .filter((p) => p.portalAccess === 'pending')
+        .length.toString(),
+      description: 'Awaiting activation',
+      icon: <Mail className='h-6 w-6 text-amber-600' />,
+      badge: { text: 'Pending', variant: 'secondary' as const }
+    }
+  ];
 
   if (!isAdmin) {
     return (
-      <PageContainer>
-        <EmptyState
-          variant='error'
-          title='Access Denied'
-          description="You don't have permission to view parent records."
-        />
-      </PageContainer>
-    );
-  }
-
-  if (loading) {
-    return (
-      <PageContainer>
-        <LoadingState
-          title='Loading parents...'
-          description='Fetching parent and guardian records...'
-        />
-      </PageContainer>
-    );
-  }
-
-  if (error && parents.length === 0) {
-    return (
-      <PageContainer>
-        <ErrorState
-          title='Failed to load parents'
-          description={error}
-          onRetry={fetchParents}
-        />
-      </PageContainer>
+      <div className='p-6'>
+        <div className='text-center'>
+          <h2 className='text-2xl font-bold'>Access Denied</h2>
+          <p className='text-muted-foreground'>
+            You don't have permission to view parent records.
+          </p>
+        </div>
+      </div>
     );
   }
 
   return (
-    <PageContainer>
-      <div className='space-y-6'>
-        <div className='flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center'>
-          <div>
-            <h2 className='text-2xl font-bold tracking-tight'>
-              Parents & Guardians
-            </h2>
-            <p className='text-muted-foreground'>
-              Manage guardian accounts and link them to students
-            </p>
-          </div>
-          <Button
-            onClick={() => {
-              setEditingParent(null);
-              resetForm();
-              setIsAddDialogOpen(true);
-            }}
-          >
-            <UserPlus className='mr-2 h-4 w-4' />
-            Invite Parent
-          </Button>
-        </div>
-
-        {/* Summary Cards */}
-        <div className='grid gap-4 md:grid-cols-3'>
-          <Card>
-            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-              <CardTitle className='text-sm font-medium'>
-                Total Parents
-              </CardTitle>
-              <User className='text-muted-foreground h-4 w-4' />
-            </CardHeader>
-            <CardContent>
-              <div className='text-2xl font-bold'>{parents.length}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-              <CardTitle className='text-sm font-medium'>
-                Active Access
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className='text-2xl font-bold text-green-600'>
-                {parents.filter((p) => p.portalAccess === 'active').length}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-              <CardTitle className='text-sm font-medium'>
-                Pending Invites
-              </CardTitle>
-              <Mail className='h-4 w-4 text-amber-600' />
-            </CardHeader>
-            <CardContent>
-              <div className='text-2xl font-bold text-amber-600'>
-                {parents.filter((p) => p.portalAccess === 'pending').length}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Parents Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Guardians</CardTitle>
-            <CardDescription>
-              List of guardians linked to students
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {parents.length === 0 ? (
-              <EmptyState
-                variant='empty'
-                title='No parents added'
-                description='Invite parents to join the parent portal'
-                action={{
-                  label: 'Invite Parent',
-                  onClick: () => setIsAddDialogOpen(true)
-                }}
-              />
-            ) : (
-              <>
-                <div className='flex items-center py-4'>
-                  <Input
-                    placeholder='Search by name or email...'
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className='max-w-sm'
-                  />
-                </div>
-                <div className='rounded-md border'>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Phone</TableHead>
-                        <TableHead>Relation</TableHead>
-                        <TableHead>Linked Students</TableHead>
-                        <TableHead>Portal Access</TableHead>
-                        <TableHead className='text-right'>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredParents.map((parent) => (
-                        <TableRow key={parent.id}>
-                          <TableCell className='font-medium'>
-                            {parent.name}
-                          </TableCell>
-                          <TableCell className='text-muted-foreground'>
-                            {parent.email}
-                          </TableCell>
-                          <TableCell>{parent.phone || '—'}</TableCell>
-                          <TableCell>
-                            <Badge variant='outline'>{parent.relation}</Badge>
-                          </TableCell>
-                          <TableCell className='text-center'>
-                            {parent.linkedStudents || 0}
-                          </TableCell>
-                          <TableCell>
-                            {getAccessBadge(parent.portalAccess)}
-                          </TableCell>
-                          <TableCell className='text-right'>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant='ghost' size='sm'>
-                                  <MoreHorizontal className='h-4 w-4' />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align='end'>
-                                <DropdownMenuItem
-                                  onClick={() => openLinkDialog(parent)}
-                                >
-                                  <Link2 className='mr-2 h-4 w-4' />
-                                  Link Student
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => openEditDialog(parent)}
-                                >
-                                  <Edit className='mr-2 h-4 w-4' />
-                                  Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className='text-destructive'
-                                  onClick={() => setParentToDelete(parent)}
-                                >
-                                  <Trash2 className='mr-2 h-4 w-4' />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+    <>
+      <DataManagementPage
+        title='Parents & Guardians'
+        description='Manage guardian accounts and link them to students'
+        data={parents}
+        columns={columns}
+        loading={loading}
+        error={error}
+        onRetry={fetchParents}
+        searchPlaceholder='Search by name or email...'
+        searchValue={searchValue}
+        onSearchChange={setSearchValue}
+        addButton={{
+          label: 'Invite Parent',
+          icon: UserPlus,
+          onClick: () => {
+            setEditingParent(null);
+            resetForm();
+            setIsAddDialogOpen(true);
+          }
+        }}
+        statsComponent={<StatsGrid stats={stats} columns={3} />}
+      />
 
       {/* Add/Edit Parent Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -476,65 +373,70 @@ export default function ParentsPage() {
             </DialogTitle>
             <DialogDescription>
               {editingParent
-                ? 'Update parent/guardian information'
-                : 'Add a new parent/guardian to the system'}
+                ? 'Update parent information'
+                : 'Send an invitation to join the parent portal'}
             </DialogDescription>
           </DialogHeader>
-          <div className='space-y-4 py-4'>
-            <div className='space-y-2'>
-              <Label>Full Name *</Label>
+          <div className='space-y-4'>
+            <div>
+              <Label htmlFor='name'>Full Name</Label>
               <Input
-                placeholder='Enter full name'
+                id='name'
                 value={parentForm.name}
                 onChange={(e) =>
                   setParentForm({ ...parentForm, name: e.target.value })
                 }
+                placeholder='Enter full name'
               />
             </div>
-            <div className='space-y-2'>
-              <Label>Email *</Label>
+            <div>
+              <Label htmlFor='email'>Email</Label>
               <Input
+                id='email'
                 type='email'
-                placeholder='Enter email address'
                 value={parentForm.email}
                 onChange={(e) =>
                   setParentForm({ ...parentForm, email: e.target.value })
                 }
+                placeholder='Enter email address'
               />
             </div>
-            <div className='grid grid-cols-2 gap-4'>
-              <div className='space-y-2'>
-                <Label>Phone</Label>
-                <Input
-                  placeholder='Phone number'
-                  value={parentForm.phone}
-                  onChange={(e) =>
-                    setParentForm({ ...parentForm, phone: e.target.value })
-                  }
-                />
-              </div>
-              <div className='space-y-2'>
-                <Label>Relation</Label>
-                <Select
-                  value={parentForm.relation}
-                  onValueChange={(v: 'Father' | 'Mother' | 'Guardian') =>
-                    setParentForm({ ...parentForm, relation: v })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value='Father'>Father</SelectItem>
-                    <SelectItem value='Mother'>Mother</SelectItem>
-                    <SelectItem value='Guardian'>Guardian</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div>
+              <Label htmlFor='phone'>Phone (Optional)</Label>
+              <Input
+                id='phone'
+                value={parentForm.phone}
+                onChange={(e) =>
+                  setParentForm({ ...parentForm, phone: e.target.value })
+                }
+                placeholder='Enter phone number'
+              />
+            </div>
+            <div>
+              <Label htmlFor='relation'>Relation to Student</Label>
+              <Select
+                value={parentForm.relation}
+                onValueChange={(value: 'Father' | 'Mother' | 'Guardian') =>
+                  setParentForm({ ...parentForm, relation: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value='Father'>Father</SelectItem>
+                  <SelectItem value='Mother'>Mother</SelectItem>
+                  <SelectItem value='Guardian'>Guardian</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
-            <Button variant='outline' onClick={() => setIsAddDialogOpen(false)}>
+            <Button
+              variant='outline'
+              onClick={() => setIsAddDialogOpen(false)}
+              disabled={submitting}
+            >
               Cancel
             </Button>
             <Button onClick={handleCreateParent} disabled={submitting}>
@@ -549,14 +451,14 @@ export default function ParentsPage() {
       <Dialog open={isLinkDialogOpen} onOpenChange={setIsLinkDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Link Student</DialogTitle>
+            <DialogTitle>Link Student to Parent</DialogTitle>
             <DialogDescription>
-              Link a student to {parentToLink?.name}
+              Connect {parentToLink?.name} with a student
             </DialogDescription>
           </DialogHeader>
-          <div className='py-4'>
-            <div className='space-y-2'>
-              <Label>Select Student</Label>
+          <div className='space-y-4'>
+            <div>
+              <Label htmlFor='student'>Select Student</Label>
               <Select
                 value={selectedStudentId}
                 onValueChange={setSelectedStudentId}
@@ -578,13 +480,11 @@ export default function ParentsPage() {
             <Button
               variant='outline'
               onClick={() => setIsLinkDialogOpen(false)}
+              disabled={submitting}
             >
               Cancel
             </Button>
-            <Button
-              onClick={handleLinkStudent}
-              disabled={submitting || !selectedStudentId}
-            >
+            <Button onClick={handleLinkStudent} disabled={submitting}>
               {submitting && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
               Link Student
             </Button>
@@ -592,23 +492,24 @@ export default function ParentsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
+      {/* Delete Confirmation Dialog */}
       <AlertDialog
         open={!!parentToDelete}
-        onOpenChange={(open) => !open && setParentToDelete(null)}
+        onOpenChange={() => setParentToDelete(null)}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Parent</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete {parentToDelete?.name}? This will
-              remove their access to the parent portal.
+              Are you sure you want to delete {parentToDelete?.name}? This
+              action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={submitting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteParent}
+              disabled={submitting}
               className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
             >
               {submitting && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
@@ -617,6 +518,6 @@ export default function ParentsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </PageContainer>
+    </>
   );
 }

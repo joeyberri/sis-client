@@ -17,13 +17,15 @@ import { Button } from '@/components/ui/button';
 import { FormInput } from './form-input';
 import { FormSelect, type FormOption } from './form-select';
 import { FormTextarea } from './form-textarea';
+import { Badge } from '@/components/ui/badge';
 
 // Student form schema
 const studentFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Please enter a valid email address'),
-  grade: z.string().min(1, 'Please select a grade'),
-  class: z.string().min(1, 'Please select a class'),
+  grade: z.string().optional(),
+  class: z.string().optional(),
+  enrollImmediately: z.boolean(),
   phone: z.string().optional(),
   address: z.string().optional()
 });
@@ -37,6 +39,7 @@ interface AddStudentDialogProps {
 }
 
 const gradeOptions: FormOption[] = [
+  { value: 'none', label: 'Not Graded Yet' },
   { value: '9th', label: '9th Grade' },
   { value: '10th', label: '10th Grade' },
   { value: '11th', label: '11th Grade' },
@@ -44,6 +47,7 @@ const gradeOptions: FormOption[] = [
 ];
 
 const classOptions: FormOption[] = [
+  { value: 'none', label: 'No Class Assigned' },
   { value: '9A', label: '9A' },
   { value: '9B', label: '9B' },
   { value: '9C', label: '9C' },
@@ -70,10 +74,11 @@ export function AddStudentDialog({
     defaultValues: {
       name: '',
       email: '',
-      grade: '',
-      class: '',
-      phone: '',
-      address: ''
+      grade: undefined,
+      class: undefined,
+      enrollImmediately: false,
+      phone: undefined,
+      address: undefined
     }
   });
 
@@ -122,24 +127,33 @@ export function AddStudentDialog({
             required
           />
 
-          <div className='grid grid-cols-2 gap-4'>
-            <FormSelect
-              control={form.control}
-              name='grade'
-              label='Grade'
-              placeholder='Select grade'
-              options={gradeOptions}
-              required
-            />
+          <div className='bg-muted/30 space-y-4 rounded-lg border border-dashed p-4'>
+            <div className='flex items-center justify-between'>
+              <h4 className='text-sm font-semibold'>
+                Enrollment Details (Optional)
+              </h4>
+              <Badge variant='outline' className='text-[10px] uppercase'>
+                Draft Mode
+              </Badge>
+            </div>
 
-            <FormSelect
-              control={form.control}
-              name='class'
-              label='Class'
-              placeholder='Select class'
-              options={classOptions}
-              required
-            />
+            <div className='grid grid-cols-2 gap-4'>
+              <FormSelect
+                control={form.control}
+                name='grade'
+                label='Grade Level'
+                placeholder='Select grade'
+                options={gradeOptions}
+              />
+
+              <FormSelect
+                control={form.control}
+                name='class'
+                label='Assigned Class'
+                placeholder='Select class'
+                options={classOptions}
+              />
+            </div>
           </div>
 
           <FormInput

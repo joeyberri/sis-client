@@ -7,6 +7,7 @@ import type { Metadata, Viewport } from 'next';
 import { cookies } from 'next/headers';
 import NextTopLoader from 'nextjs-toploader';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
+import PWARegistration from '@/components/pwa-registration';
 import './globals.css';
 import './theme.css';
 
@@ -22,16 +23,29 @@ const jetbrainsMono = JetBrains_Mono({
 
 const META_THEME_COLORS = {
   light: '#ffffff',
-  dark: '#09090b'
+  dark: '#020617'
 };
 
 export const metadata: Metadata = {
-  title: 'Next Shadcn',
-  description: 'Basic dashboard with Next.js and Shadcn'
+  title: 'REDEVISE | Mission Control',
+  description: 'High-Density School Information System & Command Center',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'REDEVISE'
+  },
+  formatDetection: {
+    telephone: false
+  }
 };
 
 export const viewport: Viewport = {
-  themeColor: META_THEME_COLORS.light
+  themeColor: META_THEME_COLORS.dark,
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false
 };
 
 export default async function RootLayout({
@@ -66,6 +80,7 @@ export default async function RootLayout({
           activeThemeValue ? `theme-${activeThemeValue}` : '',
           isScaled ? 'theme-scaled' : ''
         )}
+        suppressHydrationWarning
       >
         <NextTopLoader color='var(--primary)' showSpinner={false} />
         <NuqsAdapter>
@@ -77,6 +92,7 @@ export default async function RootLayout({
             enableColorScheme
           >
             <Providers activeThemeValue={activeThemeValue as string}>
+              <PWARegistration />
               <Toaster />
               {children}
             </Providers>

@@ -186,6 +186,95 @@ export default function PaymentsPage() {
     }
   };
 
+  const handleViewReceipt = async (payment: Payment) => {
+    try {
+      toast.loading('Generating receipt...');
+      // Try to fetch receipt from server, fallback to browser print
+      const receiptWindow = window.open('', '_blank');
+      if (receiptWindow) {
+        const receiptHTML = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Payment Receipt - ${payment.reference}</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 40px; max-width: 600px; margin: 0 auto; }
+              .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 20px; }
+              .header h1 { margin: 0; color: #333; }
+              .header p { margin: 5px 0; color: #666; }
+              .details { margin-bottom: 30px; }
+              .row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
+              .label { color: #666; }
+              .value { font-weight: bold; }
+              .total { font-size: 1.2em; background: #f9f9f9; padding: 15px; border-radius: 8px; margin-top: 20px; }
+              .footer { text-align: center; margin-top: 40px; color: #999; font-size: 0.9em; }
+              .status { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.9em; }
+              .status-completed { background: #d4edda; color: #155724; }
+              .status-pending { background: #fff3cd; color: #856404; }
+              .status-reconciled { background: #cce5ff; color: #004085; }
+              @media print { body { padding: 20px; } }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>Payment Receipt</h1>
+              <p>Reference: ${payment.reference}</p>
+            </div>
+            <div class="details">
+              <div class="row">
+                <span class="label">Student Name</span>
+                <span class="value">${payment.studentName}</span>
+              </div>
+              <div class="row">
+                <span class="label">Student ID</span>
+                <span class="value">${payment.studentId}</span>
+              </div>
+              <div class="row">
+                <span class="label">Fee Type</span>
+                <span class="value">${payment.feeType}</span>
+              </div>
+              <div class="row">
+                <span class="label">Payment Date</span>
+                <span class="value">${new Date(payment.date).toLocaleDateString()}</span>
+              </div>
+              <div class="row">
+                <span class="label">Payment Method</span>
+                <span class="value">${payment.method}</span>
+              </div>
+              <div class="row">
+                <span class="label">Status</span>
+                <span class="value">
+                  <span class="status status-${payment.status.toLowerCase()}">${payment.status}</span>
+                </span>
+              </div>
+              <div class="total">
+                <div class="row" style="border: none;">
+                  <span class="label">Total Amount</span>
+                  <span class="value">$${payment.amount.toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+            <div class="footer">
+              <p>Thank you for your payment</p>
+              <p>Generated on ${new Date().toLocaleString()}</p>
+            </div>
+          </body>
+          </html>
+        `;
+        receiptWindow.document.write(receiptHTML);
+        receiptWindow.document.close();
+        toast.dismiss();
+        toast.success('Receipt opened in new tab');
+      } else {
+        toast.dismiss();
+        toast.error('Please allow popups to view receipt');
+      }
+    } catch (err) {
+      toast.dismiss();
+      toast.error('Failed to generate receipt');
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, string> = {
       Completed: 'bg-green-100 text-green-700',
@@ -410,9 +499,7 @@ export default function PaymentsPage() {
                           <DropdownMenuContent align='end'>
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                             <DropdownMenuItem
-                              onClick={() =>
-                                toast.info('Receipt feature coming soon')
-                              }
+                              onClick={() => handleViewReceipt(payment)}
                             >
                               <Receipt className='mr-2 h-4 w-4' />
                               View Receipt

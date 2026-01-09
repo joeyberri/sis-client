@@ -2,7 +2,7 @@
 
 import { useUser as useClerkUser, useAuth } from '@clerk/nextjs';
 import apiClient from '@/lib/api/client';
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { User, UserRole } from '@/types/user';
 import { USER_ROLES } from '@/constants/roles';
 
@@ -33,6 +33,7 @@ export function UserProvider({ children }: UserProviderProps) {
   const { getToken } = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const initAttempted = useRef<string | null>(null);
 
   useEffect(() => {
     async function initializeUser() {
@@ -48,9 +49,17 @@ export function UserProvider({ children }: UserProviderProps) {
         return;
       }
 
-      // Step 1: Attach token first
+      // Prevent multiple initialization attempts for the same user
+      if (initAttempted.current === clerkUser.id) {
+        return;
+      }
+      initAttempted.current = clerkUser.id;
+
+      // Step 1: Attach token first - use default token (nextjs template lacks email claims)
+      let token: string | null = null;
       try {
-        const token = await getToken({ skipCache: true });
+        // Use default token which includes email claims needed by backend
+        token = await getToken({ skipCache: true });
         if (token) {
           apiClient.setAuthToken(token);
           // Mask token for safe debug logging
@@ -263,7 +272,7 @@ export function UserProvider({ children }: UserProviderProps) {
         clearInterval(refreshInterval);
       }
     };
-  }, [isLoaded]);
+  }, [isLoaded, clerkUser?.id]);
 
   const hasPermission = (resource: string, action: string): boolean => {
     if (!user) return false;

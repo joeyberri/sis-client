@@ -1,9 +1,12 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import {
   NotificationProvider,
   useNotifications
 } from '../notification-context';
 import { act } from 'react';
+
+// Mock fetch
+global.fetch = jest.fn();
 
 // Test component to access context
 function TestComponent() {
@@ -43,6 +46,13 @@ function TestComponent() {
 describe('NotificationContext', () => {
   beforeEach(() => {
     localStorage.clear();
+    jest.clearAllMocks();
+    (global.fetch as jest.Mock).mockImplementation((url) => {
+      if (url.includes('/read')) {
+        return Promise.resolve({ ok: true });
+      }
+      return Promise.reject(new Error('Network error'));
+    });
   });
 
   it('should provide notification context', () => {
@@ -74,7 +84,7 @@ describe('NotificationContext', () => {
     expect(screen.getByText('Test Notification')).toBeInTheDocument();
   });
 
-  it('should mark notifications as read', () => {
+  it('should mark notifications as read', async () => {
     render(
       <NotificationProvider>
         <TestComponent />
@@ -94,11 +104,13 @@ describe('NotificationContext', () => {
       markReadButton.click();
     });
 
-    expect(screen.getByTestId('unread-count')).toHaveTextContent('0');
+    await waitFor(() => {
+      expect(screen.getByTestId('unread-count')).toHaveTextContent('0');
+    });
     expect(screen.getByTestId('notification-count')).toHaveTextContent('1');
   });
 
-  it('should persist notifications to localStorage', () => {
+  it('should persist notifications to localStorage', async () => {
     const { unmount } = render(
       <NotificationProvider>
         <TestComponent />
@@ -111,7 +123,13 @@ describe('NotificationContext', () => {
       addButton.click();
     });
 
-    // Unmount and check localStorage
+    // Wait for localStorage to be updated
+    await waitFor(() => {
+      const stored = localStorage.getItem('sis_notifications');
+      expect(stored).toBeTruthy();
+    });
+
+    // Unmount and check localStorage still has it
     unmount();
 
     const stored = localStorage.getItem('sis_notifications');

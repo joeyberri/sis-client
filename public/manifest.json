@@ -1,0 +1,34 @@
+{
+  "name": "REDEVISE Mission Control",
+  "short_name": "REDEVISE",
+  "description": "High-Density School Information System & Command Center",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/assets/icon-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/assets/icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Quick Attendance",
+      "url": "/dashboard/attendance",
+      "icons": [{ "src": "/assets/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Gradebook",
+      "url": "/dashboard/assessments/gradebook",
+      "icons": [{ "src": "/assets/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ]
+}

@@ -15,6 +15,7 @@ interface NotificationContextType {
   notifications: Notification[];
   unreadCount: number;
   preferences: NotificationPreferences;
+  isLoading: boolean;
   addNotification: (
     notification: Omit<Notification, 'id' | 'timestamp' | 'read'>
   ) => void;
@@ -23,6 +24,7 @@ interface NotificationContextType {
   removeNotification: (id: string) => void;
   clearAll: () => void;
   updatePreferences: (preferences: Partial<NotificationPreferences>) => void;
+  refreshNotifications: () => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(
@@ -52,48 +54,74 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [preferences, setPreferences] =
     useState<NotificationPreferences>(DEFAULT_PREFERENCES);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Load notifications and preferences from localStorage
+  // Load notifications from localStorage
   useEffect(() => {
     const storedNotifications = localStorage.getItem('sis_notifications');
-    const storedPreferences = localStorage.getItem(
-      'sis_notification_preferences'
-    );
-
     if (storedNotifications) {
       try {
         const parsed = JSON.parse(storedNotifications);
-        setNotifications(
-          parsed.map((n: any) => ({ ...n, timestamp: new Date(n.timestamp) }))
-        );
+        const notificationsWithDates = parsed.map((n: any) => ({
+          ...n,
+          timestamp: new Date(n.timestamp)
+        }));
+        setNotifications(notificationsWithDates);
       } catch (e) {
         console.error('Failed to parse notifications:', e);
       }
     }
+    setIsLoading(false);
+  }, []);
 
-    if (storedPreferences) {
-      try {
-        setPreferences(JSON.parse(storedPreferences));
-      } catch (e) {
-        console.error('Failed to parse preferences:', e);
+  // Save notifications to localStorage
+  useEffect(() => {
+    localStorage.setItem('sis_notifications', JSON.stringify(notifications));
+  }, [notifications]);
+
+  // Fetch notifications from API
+  const fetchNotifications = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/notifications?limit=50');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          const apiNotifications: Notification[] = data.data.map((n: any) => ({
+            id: n.id,
+            title: n.title,
+            message: n.message,
+            type: n.type || 'info',
+            priority: n.priority || 'normal',
+            read: n.isRead || false,
+            timestamp: new Date(n.createdAt),
+            actionUrl: n.entityType
+              ? `/${n.entityType}/${n.entityId}`
+              : undefined,
+            actionLabel: n.entityType ? 'View' : undefined
+          }));
+          setNotifications(apiNotifications);
+        }
       }
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
-  // Save notifications to localStorage whenever they change
+  // Initial fetch on mount
   useEffect(() => {
-    if (notifications.length > 0) {
-      localStorage.setItem('sis_notifications', JSON.stringify(notifications));
+    // Only fetch if no stored notifications
+    if (notifications.length === 0) {
+      fetchNotifications();
     }
-  }, [notifications]);
+  }, [fetchNotifications, notifications.length]);
 
-  // Save preferences to localStorage
-  useEffect(() => {
-    localStorage.setItem(
-      'sis_notification_preferences',
-      JSON.stringify(preferences)
-    );
-  }, [preferences]);
+  // Refresh notifications function
+  const refreshNotifications = useCallback(async () => {
+    await fetchNotifications();
+  }, [fetchNotifications]);
 
   const addNotification = useCallback(
     (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => {
@@ -146,14 +174,46 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     [preferences]
   );
 
-  const markAsRead = useCallback((id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
+  const markAsRead = useCallback(async (id: string) => {
+    try {
+      const response = await fetch(`/notifications/${id}/read`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+        );
+      }
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+      // Fallback to local state update
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+      );
+    }
   }, []);
 
-  const markAllAsRead = useCallback(() => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  const markAllAsRead = useCallback(async () => {
+    try {
+      const response = await fetch('/notifications/read-all', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      }
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
+      // Fallback to local state update
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    }
   }, []);
 
   const removeNotification = useCallback((id: string) => {
@@ -178,12 +238,14 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     notifications,
     unreadCount,
     preferences,
+    isLoading,
     addNotification,
     markAsRead,
     markAllAsRead,
     removeNotification,
     clearAll,
-    updatePreferences
+    updatePreferences,
+    refreshNotifications
   };
 
   return (

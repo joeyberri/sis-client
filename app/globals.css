@@ -8,13 +8,20 @@
 
 /* Font variable setup for Rubik and JetBrains Mono */
 :root {
-  --font-rubik: var(--font-rubik, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
+  --font-rubik: var(
+    --font-rubik,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif
+  );
   --font-jetbrains-mono: var(--font-jetbrains-mono, monospace);
 }
 
 :root {
   --radius: 0.625rem;
-  --background: #FCFCF9;
+  --background: #fcfcf9;
   --foreground: #1a1a1a;
   --card: #ffffff;
   --card-foreground: #1a1a1a;
@@ -49,11 +56,11 @@
 
 .dark {
   --background: #1a1a1a;
-  --foreground: #FCFCF9;
+  --foreground: #fcfcf9;
   --card: #262626;
-  --card-foreground: #FCFCF9;
+  --card-foreground: #fcfcf9;
   --popover: #262626;
-  --popover-foreground: #FCFCF9;
+  --popover-foreground: #fcfcf9;
   --primary: #009ba8;
   --primary-foreground: #ffffff;
   --secondary: #a37dc2;
@@ -160,4 +167,39 @@
 ::view-transition-new(root) {
   /* Apply the reveal animation */
   animation: reveal 0.4s ease-in-out forwards;
+}
+
+/* Custom Scrollbar Styling - Soft & Modern */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--muted-foreground);
+  border-radius: 20px;
+  opacity: 0.2;
+  border: 1.5px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+  opacity: 0.5;
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--muted-foreground) 20%, transparent)
+    transparent;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: var(--muted-foreground);
+  opacity: 0.1;
 }

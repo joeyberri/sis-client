@@ -40,20 +40,12 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { Icons } from '@/components/icons';
+import { PageHeader } from '@/components/common/page-header';
 import apiClient from '@/lib/api/client';
 import { EmptyState, ErrorState, LoadingState } from '@/components/empty-state';
 import { toast } from 'sonner';
-import {
-  Plus,
-  DollarSign,
-  TrendingUp,
-  AlertCircle,
-  Edit,
-  Trash2,
-  Loader2,
-  Receipt,
-  CreditCard
-} from 'lucide-react';
+import { Icon } from '@iconify/react';
 
 interface FeeStructure {
   id: string;
@@ -344,36 +336,34 @@ export default function FeesPage() {
   return (
     <PageContainer>
       <div className='space-y-6'>
-        {/* Header */}
-        <div className='flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center'>
-          <div>
-            <h2 className='text-2xl font-bold tracking-tight'>
-              Fee Management
-            </h2>
-            <p className='text-muted-foreground'>
-              Manage fee structures and track payments
-            </p>
-          </div>
-          <div className='flex gap-2'>
-            <Button
-              variant='outline'
-              onClick={() => setIsPaymentDialogOpen(true)}
-            >
-              <Receipt className='mr-2 h-4 w-4' />
-              Record Payment
-            </Button>
-            <Button
-              onClick={() => {
-                setEditingStructure(null);
-                resetStructureForm();
-                setIsStructureDialogOpen(true);
-              }}
-            >
-              <Plus className='mr-2 h-4 w-4' />
-              Add Fee Structure
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          title='Fees & Finance'
+          description='Keep track of school fees, structures, and student payments with ease.'
+          icon='solar:wad-of-money-duotone'
+          actions={
+            <>
+              <Button
+                variant='outline'
+                onClick={() => setIsPaymentDialogOpen(true)}
+                className='h-10 border-2 font-medium'
+              >
+                <Icons.Receipt className='mr-2 h-4 w-4' />
+                Record Payment
+              </Button>
+              <Button
+                onClick={() => {
+                  setEditingStructure(null);
+                  resetStructureForm();
+                  setIsStructureDialogOpen(true);
+                }}
+                className='shadow-primary/20 h-10 px-5 font-medium shadow-lg'
+              >
+                <Icons.Plus className='mr-2 h-4 w-4' />
+                Add Fee Structure
+              </Button>
+            </>
+          }
+        />
 
         {/* Summary Cards */}
         <div className='grid gap-4 md:grid-cols-4'>
@@ -382,7 +372,7 @@ export default function FeesPage() {
               <CardTitle className='text-sm font-medium'>
                 Total Fees Value
               </CardTitle>
-              <DollarSign className='text-muted-foreground h-4 w-4' />
+              <Icons.DollarSign className='text-muted-foreground h-4 w-4' />
             </CardHeader>
             <CardContent>
               <div className='text-2xl font-bold'>
@@ -398,7 +388,7 @@ export default function FeesPage() {
               <CardTitle className='text-sm font-medium'>
                 Active Structures
               </CardTitle>
-              <TrendingUp className='text-muted-foreground h-4 w-4' />
+              <Icons.TrendingUp className='text-muted-foreground h-4 w-4' />
             </CardHeader>
             <CardContent>
               <div className='text-2xl font-bold'>{activeStructures}</div>
@@ -412,7 +402,7 @@ export default function FeesPage() {
               <CardTitle className='text-sm font-medium'>
                 Total Collected
               </CardTitle>
-              <CreditCard className='text-muted-foreground h-4 w-4' />
+              <Icons.CreditCard className='text-muted-foreground h-4 w-4' />
             </CardHeader>
             <CardContent>
               <div className='text-2xl font-bold text-green-600'>
@@ -429,7 +419,7 @@ export default function FeesPage() {
               <CardTitle className='text-sm font-medium'>
                 Pending Payments
               </CardTitle>
-              <AlertCircle className='text-muted-foreground h-4 w-4' />
+              <Icons.AlertCircle className='text-muted-foreground h-4 w-4' />
             </CardHeader>
             <CardContent>
               <div className='text-2xl font-bold text-amber-600'>
@@ -512,7 +502,7 @@ export default function FeesPage() {
                               size='sm'
                               onClick={() => openEditStructure(fee)}
                             >
-                              <Edit className='h-4 w-4' />
+                              <Icons.Edit className='h-4 w-4' />
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -742,7 +732,9 @@ export default function FeesPage() {
               Cancel
             </Button>
             <Button onClick={handleCreateStructure} disabled={submitting}>
-              {submitting && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
+              {submitting && (
+                <Icons.spinner className='mr-2 h-4 w-4 animate-spin' />
+              )}
               {editingStructure ? 'Update' : 'Create'}
             </Button>
           </DialogFooter>
@@ -864,7 +856,9 @@ export default function FeesPage() {
               Cancel
             </Button>
             <Button onClick={handleRecordPayment} disabled={submitting}>
-              {submitting && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
+              {submitting && (
+                <Icons.spinner className='mr-2 h-4 w-4 animate-spin' />
+              )}
               Record Payment
             </Button>
           </DialogFooter>

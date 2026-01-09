@@ -40,7 +40,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  Building2,
+  Building,
   Search,
   Plus,
   MoreHorizontal,
@@ -263,7 +263,7 @@ export default function SchoolsManagement() {
         <div className='flex items-center justify-between'>
           <div>
             <h1 className='flex items-center gap-2 text-3xl font-bold'>
-              <Building2 className='text-primary h-8 w-8' />
+              <Building className='text-primary h-8 w-8' />
               Schools Management
             </h1>
             <p className='text-muted-foreground mt-1'>

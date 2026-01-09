@@ -17,7 +17,7 @@ class ApiClient extends BaseApiClient {
   public academic: AcademicApiClient;
 
   constructor() {
-    super();
+    super(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001');
     // Initialize all modular clients with the same base configuration
     this.students = new StudentsApiClient();
     this.teachers = new TeachersApiClient();
@@ -82,9 +82,48 @@ class ApiClient extends BaseApiClient {
       class?: string;
       phone?: string;
       address?: string;
+      status?: string;
     }>
   ) {
     const response = await this.client.put(`/students/${id}`, data);
+    return response.data;
+  }
+
+  async inviteUser(data: { name: string; email: string; role: string }) {
+    const response = await this.client.post('/auth/invite', data);
+    return response.data;
+  }
+
+  // Storage endpoints
+  async getStorageStats() {
+    const response = await this.client.get('/storage/me');
+    return response.data;
+  }
+
+  async getFiles(params?: {
+    mimeType?: string;
+    limit?: number;
+    offset?: number;
+  }) {
+    const response = await this.client.get('/storage/files', { params });
+    return response.data;
+  }
+
+  async uploadFile(file: File, isPublic: boolean = false) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('isPublic', isPublic.toString());
+
+    const response = await this.client.post('/storage/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data;
+  }
+
+  async deleteFile(fileId: string) {
+    const response = await this.client.delete(`/storage/files/${fileId}`);
     return response.data;
   }
 
@@ -131,6 +170,7 @@ class ApiClient extends BaseApiClient {
       phone?: string;
       address?: string;
       qualifications?: string;
+      status?: string;
     }>
   ) {
     const response = await this.client.put(`/teachers/${id}`, data);

@@ -2,34 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useUser } from '@/context/user/user-context';
-import PageContainer from '@/components/layout/page-container';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuCheckboxItem
-} from '@/components/ui/dropdown-menu';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,32 +14,26 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from '@/components/ui/alert-dialog';
-import {
-  Plus,
-  Search,
-  MoreHorizontal,
-  Edit,
-  Trash2,
-  Eye,
-  ChevronUp,
-  ChevronDown,
-  Loader2,
-  Upload
-} from 'lucide-react';
-import {
-  ColumnDef,
-  ColumnFiltersState,
-  SortingState,
-  VisibilityState,
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable
-} from '@tanstack/react-table';
-import { EmptyState, ErrorState, LoadingState } from '@/components/empty-state';
+import { Icons } from '@/components/icons';
 import { toast } from 'sonner';
+
+// Import common components
+import {
+  DataManagementPage,
+  StatusBadge,
+  ActionDropdown,
+  createViewAction,
+  createEditAction,
+  createDeleteAction,
+  FilterOption
+} from '@/components/common';
+
+// Import existing dialogs and sheets
+import { AddStudentDialog } from '@/components/forms/add-student-dialog';
+import { EditStudentDialog } from '@/components/forms/edit-student-dialog';
+import { StudentDetailsSheet } from '@/components/sheets/student-details-sheet';
+import { BulkUploadDialog } from '@/components/forms/bulk-upload-dialog';
+import { apiClient } from '@/lib/api/client';
 
 // Student type definition
 interface Student {
@@ -82,36 +50,13 @@ interface Student {
   updated_at?: string;
 }
 
-// Helper function for status badges
-const getStatusBadge = (status: Student['status']) => {
-  switch (status) {
-    case 'active':
-      return <Badge variant='default'>Active</Badge>;
-    case 'inactive':
-      return <Badge variant='secondary'>Inactive</Badge>;
-    case 'suspended':
-      return <Badge variant='destructive'>Suspended</Badge>;
-    default:
-      return <Badge variant='outline'>Unknown</Badge>;
-  }
-};
-
-// Import the add student dialog
-import { AddStudentDialog } from '@/components/forms/add-student-dialog';
-import { EditStudentDialog } from '@/components/forms/edit-student-dialog';
-import { StudentDetailsSheet } from '@/components/sheets/student-details-sheet';
-import { BulkUploadDialog } from '@/components/forms/bulk-upload-dialog';
-import { apiClient } from '@/lib/api/client';
-
-// Action callbacks interface for column definitions
-interface ActionCallbacks {
-  onView: (student: Student) => void;
-  onEdit: (student: Student) => void;
-  onDelete: (student: Student) => void;
-}
-
-// Column definitions creator function
-const createColumns = (callbacks: ActionCallbacks): ColumnDef<Student>[] => [
+// Column definitions
+const createColumns = (
+  onView: (student: Student) => void,
+  onEdit: (student: Student) => void,
+  onDelete: (student: Student) => void,
+  onSuspend: (student: Student) => void
+): ColumnDef<Student>[] => [
   {
     accessorKey: 'name',
     header: ({ column }) => {
@@ -122,11 +67,11 @@ const createColumns = (callbacks: ActionCallbacks): ColumnDef<Student>[] => [
         >
           Name
           {column.getIsSorted() === 'asc' ? (
-            <ChevronUp className='ml-2 h-4 w-4' />
+            <Icons.ChevronUp className='ml-2 h-4 w-4' />
           ) : column.getIsSorted() === 'desc' ? (
-            <ChevronDown className='ml-2 h-4 w-4' />
+            <Icons.ChevronDown className='ml-2 h-4 w-4' />
           ) : (
-            <ChevronUp className='ml-2 h-4 w-4 opacity-50' />
+            <Icons.ChevronUp className='ml-2 h-4 w-4 opacity-50' />
           )}
         </Button>
       );
@@ -143,11 +88,11 @@ const createColumns = (callbacks: ActionCallbacks): ColumnDef<Student>[] => [
         >
           Email
           {column.getIsSorted() === 'asc' ? (
-            <ChevronUp className='ml-2 h-4 w-4' />
+            <Icons.ChevronUp className='ml-2 h-4 w-4' />
           ) : column.getIsSorted() === 'desc' ? (
-            <ChevronDown className='ml-2 h-4 w-4' />
+            <Icons.ChevronDown className='ml-2 h-4 w-4' />
           ) : (
-            <ChevronUp className='ml-2 h-4 w-4 opacity-50' />
+            <Icons.ChevronUp className='ml-2 h-4 w-4 opacity-50' />
           )}
         </Button>
       );
@@ -173,11 +118,11 @@ const createColumns = (callbacks: ActionCallbacks): ColumnDef<Student>[] => [
         >
           Enrollment Date
           {column.getIsSorted() === 'asc' ? (
-            <ChevronUp className='ml-2 h-4 w-4' />
+            <Icons.ChevronUp className='ml-2 h-4 w-4' />
           ) : column.getIsSorted() === 'desc' ? (
-            <ChevronDown className='ml-2 h-4 w-4' />
+            <Icons.ChevronDown className='ml-2 h-4 w-4' />
           ) : (
-            <ChevronUp className='ml-2 h-4 w-4 opacity-50' />
+            <Icons.ChevronUp className='ml-2 h-4 w-4 opacity-50' />
           )}
         </Button>
       );
@@ -191,8 +136,9 @@ const createColumns = (callbacks: ActionCallbacks): ColumnDef<Student>[] => [
     accessorKey: 'status',
     header: 'Status',
     cell: ({ row }) => {
-      const status = row.getValue('status') as Student['status'];
-      return getStatusBadge(status);
+      const status =
+        (row.getValue('status') as Student['status']) || 'inactive';
+      return <StatusBadge status={status} />;
     }
   },
   {
@@ -200,78 +146,18 @@ const createColumns = (callbacks: ActionCallbacks): ColumnDef<Student>[] => [
     enableHiding: false,
     cell: ({ row }) => {
       const student = row.original;
+      const actions = [
+        createViewAction(() => onView(student)),
+        createEditAction(() => onEdit(student)),
+        {
+          label: student.status === 'suspended' ? 'Activate' : 'Suspend',
+          icon: <Icons.ShieldAlert className='mr-2 h-4 w-4' />,
+          onClick: () => onSuspend(student)
+        },
+        createDeleteAction(() => onDelete(student))
+      ];
 
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant='ghost' className='h-8 w-8 p-0'>
-              <span className='sr-only'>Open menu</span>
-              <MoreHorizontal className='h-4 w-4' />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align='end'>
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => callbacks.onView(student)}>
-              <Eye className='mr-2 h-4 w-4' />
-              View Details
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => callbacks.onEdit(student)}>
-              <Edit className='mr-2 h-4 w-4' />
-              Edit Student
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className='text-destructive'
-              onClick={() => callbacks.onDelete(student)}
-            >
-              <Trash2 className='mr-2 h-4 w-4' />
-              Delete Student
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
-    }
-  },
-  {
-    accessorKey: 'status',
-    header: 'Status',
-    cell: ({ row }) => {
-      const status = row.getValue('status') as Student['status'];
-      return getStatusBadge(status);
-    }
-  },
-  {
-    id: 'actions',
-    enableHiding: false,
-    cell: ({ row }) => {
-      const student = row.original;
-
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant='ghost' className='h-8 w-8 p-0'>
-              <span className='sr-only'>Open menu</span>
-              <MoreHorizontal className='h-4 w-4' />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align='end'>
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem>
-              <Eye className='mr-2 h-4 w-4' />
-              View Details
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Edit className='mr-2 h-4 w-4' />
-              Edit Student
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className='text-destructive'>
-              <Trash2 className='mr-2 h-4 w-4' />
-              Delete Student
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
+      return <ActionDropdown actions={actions} />;
     }
   }
 ];
@@ -281,21 +167,46 @@ export default function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [gradeFilter, setGradeFilter] = useState('all');
+
+  // Dialog states
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
-
-  // Edit/View/Delete state
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isViewSheetOpen, setIsViewSheetOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // TanStack Table setup
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = useState({});
+  // Filter options
+  const statusFilterOptions: FilterOption[] = [
+    { value: 'active', label: 'Active' },
+    { value: 'inactive', label: 'Inactive' },
+    { value: 'suspended', label: 'Suspended' }
+  ];
+
+  const gradeFilterOptions: FilterOption[] = [
+    { value: '9th', label: '9th Grade' },
+    { value: '10th', label: '10th Grade' },
+    { value: '11th', label: '11th Grade' },
+    { value: '12th', label: '12th Grade' }
+  ];
+
+  // Filter students based on search and filters
+  const filteredStudents = students.filter((student) => {
+    const matchesSearch =
+      !searchQuery ||
+      student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      student.email.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesStatus =
+      statusFilter === 'all' || student.status === statusFilter;
+    const matchesGrade = gradeFilter === 'all' || student.grade === gradeFilter;
+
+    return matchesSearch && matchesStatus && matchesGrade;
+  });
 
   // Action handlers
   const handleViewStudent = useCallback((student: Student) => {
@@ -306,6 +217,22 @@ export default function StudentsPage() {
   const handleEditStudent = useCallback((student: Student) => {
     setSelectedStudent(student);
     setIsEditDialogOpen(true);
+  }, []);
+
+  const handleSuspendStudent = useCallback(async (student: Student) => {
+    try {
+      const newStatus = student.status === 'suspended' ? 'active' : 'suspended';
+      await apiClient.updateStudent(student.id, { status: newStatus as any });
+      toast.success(
+        `Student ${
+          newStatus === 'suspended' ? 'suspended' : 'activated'
+        } successfully`
+      );
+      await fetchStudents();
+    } catch (err) {
+      console.error('Error updating student status:', err);
+      toast.error('Failed to update student status');
+    }
   }, []);
 
   const handleDeletePrompt = useCallback((student: Student) => {
@@ -346,32 +273,6 @@ export default function StudentsPage() {
     }
   };
 
-  // Create columns with action callbacks
-  const columns = createColumns({
-    onView: handleViewStudent,
-    onEdit: handleEditStudent,
-    onDelete: handleDeletePrompt
-  });
-
-  const table = useReactTable({
-    data: students,
-    columns,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
-    state: {
-      sorting,
-      columnFilters,
-      columnVisibility,
-      rowSelection
-    }
-  });
-
   const fetchStudents = async () => {
     try {
       setLoading(true);
@@ -396,18 +297,18 @@ export default function StudentsPage() {
   ) => {
     try {
       await apiClient.createStudent(studentData);
-      await fetchStudents(); // Refresh the list
+      await fetchStudents();
       setIsAddDialogOpen(false);
     } catch (err) {
       console.error('Error adding student:', err);
-      throw err; // Re-throw to let the dialog handle the error
+      throw err;
     }
   };
 
   const handleBulkUpload = async (data: any[]) => {
     try {
       await apiClient.bulkUpsert('students', data);
-      await fetchStudents(); // Refresh the list
+      await fetchStudents();
       setIsBulkUploadOpen(false);
     } catch (err) {
       console.error('Error bulk uploading students:', err);
@@ -417,300 +318,95 @@ export default function StudentsPage() {
 
   if (!isAdmin) {
     return (
-      <PageContainer>
-        <EmptyState
-          variant='error'
-          title='Access Denied'
-          description="You don't have permission to view student records. Please contact an administrator."
-        />
-      </PageContainer>
+      <div className='flex h-screen items-center justify-center'>
+        <div className='text-center'>
+          <h1 className='text-2xl font-bold text-gray-900'>Access Denied</h1>
+          <p className='mt-2 text-gray-600'>
+            You don't have permission to view this page.
+          </p>
+        </div>
+      </div>
     );
   }
 
-  if (loading) {
-    return (
-      <PageContainer>
-        <LoadingState
-          title='Loading students...'
-          description='Fetching your student records...'
-        />
-      </PageContainer>
-    );
-  }
+  const columns = createColumns(
+    handleViewStudent,
+    handleEditStudent,
+    handleDeletePrompt,
+    handleSuspendStudent
+  );
 
-  if (error && students.length === 0) {
-    return (
-      <PageContainer>
-        <ErrorState
-          title='Failed to load students'
-          description="We couldn't fetch your student records. Please check your connection and try again."
-          onRetry={fetchStudents}
-        />
-      </PageContainer>
-    );
-  }
+  const filters = [
+    {
+      key: 'status',
+      label: 'Status',
+      options: statusFilterOptions,
+      value: statusFilter,
+      onChange: setStatusFilter
+    },
+    {
+      key: 'grade',
+      label: 'Grade',
+      options: gradeFilterOptions,
+      value: gradeFilter,
+      onChange: setGradeFilter
+    }
+  ];
 
   return (
-    <PageContainer>
-      <div className='space-y-6'>
-        <div className='flex items-center justify-between'>
-          <div>
-            <h1 className='text-3xl font-bold'>Students Management</h1>
-            <p className='text-muted-foreground'>
-              Manage student records, enrollment, and academic information
-            </p>
-          </div>
-          <div className='flex gap-2'>
-            <Button onClick={() => setIsBulkUploadOpen(true)} variant='outline'>
-              <Upload className='mr-2 h-4 w-4' />
-              Bulk Upload
-            </Button>
-            <Button onClick={() => setIsAddDialogOpen(true)}>
-              <Plus className='mr-2 h-4 w-4' />
-              Add Student
-            </Button>
-          </div>
-        </div>
+    <>
+      <DataManagementPage
+        title='Students'
+        description='Manage your student body. Keep track of enrollments, profiles, and academic status.'
+        icon='solar:users-group-rounded-duotone'
+        data={filteredStudents}
+        columns={columns}
+        loading={loading}
+        error={error}
+        searchPlaceholder='Search students by name or email...'
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        filters={filters}
+        showAddButton={true}
+        showBulkUpload={true}
+        onAdd={() => setIsAddDialogOpen(true)}
+        onBulkUpload={() => setIsBulkUploadOpen(true)}
+        addButtonLabel='Add Student'
+      />
 
-        {/* Show empty state if no students */}
-        {students.length === 0 ? (
-          <EmptyState
-            title='No students yet'
-            description='Start by adding your first student to the system.'
-            action={{
-              label: 'Add First Student',
-              onClick: () => setIsAddDialogOpen(true)
-            }}
-          />
-        ) : (
-          <>
-            {/* Summary Cards */}
-            <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-4'>
-              <Card>
-                <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                  <CardTitle className='text-sm font-medium'>
-                    Total Students
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className='text-2xl font-bold'>{students.length}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                  <CardTitle className='text-sm font-medium'>
-                    Active Students
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className='text-2xl font-bold'>
-                    {students.filter((s) => s.status === 'active').length}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                  <CardTitle className='text-sm font-medium'>
-                    Suspended
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className='text-2xl font-bold'>
-                    {students.filter((s) => s.status === 'suspended').length}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                  <CardTitle className='text-sm font-medium'>
-                    This Month
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className='text-2xl font-bold'>
-                    {
-                      students.filter((s) => {
-                        if (!s.enrollment_date) return false;
-                        const enrollmentDate = new Date(s.enrollment_date);
-                        const now = new Date();
-                        return (
-                          enrollmentDate.getMonth() === now.getMonth() &&
-                          enrollmentDate.getFullYear() === now.getFullYear()
-                        );
-                      }).length
-                    }
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Students Table */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Students</CardTitle>
-                <CardDescription>
-                  A list of all students enrolled in the school
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className='flex items-center py-4'>
-                  <Input
-                    placeholder='Filter students...'
-                    value={
-                      (table.getColumn('name')?.getFilterValue() as string) ??
-                      ''
-                    }
-                    onChange={(event) =>
-                      table
-                        .getColumn('name')
-                        ?.setFilterValue(event.target.value)
-                    }
-                    className='max-w-sm'
-                  />
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant='outline' className='ml-auto'>
-                        Columns <ChevronDown className='ml-2 h-4 w-4' />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align='end'>
-                      {table
-                        .getAllColumns()
-                        .filter((column) => column.getCanHide())
-                        .map((column) => {
-                          return (
-                            <DropdownMenuCheckboxItem
-                              key={column.id}
-                              className='capitalize'
-                              checked={column.getIsVisible()}
-                              onCheckedChange={(value) =>
-                                column.toggleVisibility(!!value)
-                              }
-                            >
-                              {column.id}
-                            </DropdownMenuCheckboxItem>
-                          );
-                        })}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-                <div className='rounded-md border'>
-                  <Table>
-                    <TableHeader>
-                      {table.getHeaderGroups().map((headerGroup) => (
-                        <TableRow key={headerGroup.id}>
-                          {headerGroup.headers.map((header) => {
-                            return (
-                              <TableHead key={header.id}>
-                                {header.isPlaceholder
-                                  ? null
-                                  : flexRender(
-                                      header.column.columnDef.header,
-                                      header.getContext()
-                                    )}
-                              </TableHead>
-                            );
-                          })}
-                        </TableRow>
-                      ))}
-                    </TableHeader>
-                    <TableBody>
-                      {table.getRowModel().rows?.length ? (
-                        table.getRowModel().rows.map((row) => (
-                          <TableRow
-                            key={row.id}
-                            data-state={row.getIsSelected() && 'selected'}
-                          >
-                            {row.getVisibleCells().map((cell) => (
-                              <TableCell key={cell.id}>
-                                {flexRender(
-                                  cell.column.columnDef.cell,
-                                  cell.getContext()
-                                )}
-                              </TableCell>
-                            ))}
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell
-                            colSpan={columns.length}
-                            className='h-24 text-center'
-                          >
-                            No results.
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-                <div className='flex items-center justify-end space-x-2 py-4'>
-                  <div className='text-muted-foreground flex-1 text-sm'>
-                    {table.getFilteredSelectedRowModel().rows.length} of{' '}
-                    {table.getFilteredRowModel().rows.length} row(s) selected.
-                  </div>
-                  <div className='space-x-2'>
-                    <Button
-                      variant='outline'
-                      size='sm'
-                      onClick={() => table.previousPage()}
-                      disabled={!table.getCanPreviousPage()}
-                    >
-                      Previous
-                    </Button>
-                    <Button
-                      variant='outline'
-                      size='sm'
-                      onClick={() => table.nextPage()}
-                      disabled={!table.getCanNextPage()}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </>
-        )}
-      </div>
-
-      {/* Add Student Dialog */}
+      {/* Dialogs and Sheets */}
       <AddStudentDialog
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
         onSubmit={handleAddStudent}
       />
 
-      {/* Edit Student Dialog */}
+      <BulkUploadDialog
+        open={isBulkUploadOpen}
+        onOpenChange={setIsBulkUploadOpen}
+        resource='students'
+        onUpload={handleBulkUpload}
+      />
+
       {selectedStudent && (
-        <EditStudentDialog
-          open={isEditDialogOpen}
-          onOpenChange={(open) => {
-            setIsEditDialogOpen(open);
-            if (!open) setSelectedStudent(null);
-          }}
-          student={selectedStudent}
-          onSubmit={handleUpdateStudent}
-        />
+        <>
+          <EditStudentDialog
+            open={isEditDialogOpen}
+            onOpenChange={setIsEditDialogOpen}
+            student={selectedStudent}
+            onSubmit={handleUpdateStudent}
+          />
+
+          <StudentDetailsSheet
+            open={isViewSheetOpen}
+            onOpenChange={setIsViewSheetOpen}
+            student={selectedStudent}
+            onEdit={() => handleEditStudent(selectedStudent)}
+            onSuspend={handleSuspendStudent}
+          />
+        </>
       )}
 
-      {/* View Student Details Sheet */}
-      {selectedStudent && (
-        <StudentDetailsSheet
-          open={isViewSheetOpen}
-          onOpenChange={(open) => {
-            setIsViewSheetOpen(open);
-            if (!open) setSelectedStudent(null);
-          }}
-          student={selectedStudent}
-          onEdit={() => {
-            setIsViewSheetOpen(false);
-            setIsEditDialogOpen(true);
-          }}
-        />
-      )}
-
-      {/* Delete Confirmation Dialog */}
       <AlertDialog
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
@@ -720,37 +416,21 @@ export default function StudentsPage() {
             <AlertDialogTitle>Delete Student</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete {selectedStudent?.name}? This
-              action cannot be undone. All associated records including
-              attendance, grades, and enrollment data will also be removed.
+              action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirm}
               disabled={isDeleting}
               className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
             >
-              {isDeleting ? (
-                <>
-                  <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                  Deleting...
-                </>
-              ) : (
-                'Delete'
-              )}
+              {isDeleting ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Bulk Upload Dialog */}
-      <BulkUploadDialog
-        open={isBulkUploadOpen}
-        onOpenChange={setIsBulkUploadOpen}
-        resource='students'
-        onUpload={handleBulkUpload}
-      />
-    </PageContainer>
+    </>
   );
 }

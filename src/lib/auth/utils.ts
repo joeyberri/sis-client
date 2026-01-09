@@ -44,7 +44,10 @@ export function isAuthRoute(pathname: string): boolean {
  */
 export function isPublicRoute(pathname: string): boolean {
   const publicRoutes = ['/auth/sign-in', '/auth/sign-up', '/', '/api/webhooks'];
-  return publicRoutes.some(
-    (route) => pathname.startsWith(route) || pathname === route
-  );
+  return publicRoutes.some((route) => {
+    if (route === '/') {
+      return pathname === route;
+    }
+    return pathname.startsWith(route);
+  });
 }

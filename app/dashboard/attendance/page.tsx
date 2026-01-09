@@ -39,19 +39,12 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog';
+import { Icons } from '@/components/icons';
+import { PageHeader } from '@/components/common/page-header';
 import apiClient from '@/lib/api/client';
 import { EmptyState, ErrorState, LoadingState } from '@/components/empty-state';
 import { toast } from 'sonner';
-import {
-  CheckCircle,
-  XCircle,
-  Clock,
-  AlertCircle,
-  Download,
-  Loader2,
-  UserCheck,
-  Save
-} from 'lucide-react';
+import { Icon } from '@iconify/react';
 
 type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
 
@@ -300,33 +293,36 @@ export default function AttendancePage() {
   return (
     <PageContainer>
       <div className='space-y-6'>
-        {/* Header */}
-        <div className='flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center'>
-          <div>
-            <h2 className='text-2xl font-bold tracking-tight'>
-              Attendance Management
-            </h2>
-            <p className='text-muted-foreground'>
-              Mark and manage student attendance by class
-            </p>
-          </div>
-          <div className='flex gap-2'>
-            <Button variant='outline'>
-              <Download className='mr-2 h-4 w-4' />
-              Export Report
-            </Button>
-            {hasChanges && (
-              <Button onClick={saveAttendance} disabled={saving}>
-                {saving ? (
-                  <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                ) : (
-                  <Save className='mr-2 h-4 w-4' />
-                )}
-                Save Attendance
+        <PageHeader
+          title='Attendance'
+          description="Take attendance and keep track of your students for the day. It's the simplest way to keep records current."
+          icon='solar:user-check-rounded-duotone'
+          actions={
+            <>
+              <Button variant='outline' className='h-10 border-2 font-medium'>
+                <Icon icon='solar:download-duotone' className='mr-2 h-4 w-4' />
+                Export Report
               </Button>
-            )}
-          </div>
-        </div>
+              {hasChanges && (
+                <Button
+                  onClick={saveAttendance}
+                  disabled={saving}
+                  className='shadow-primary/20 h-10 px-5 font-medium shadow-lg'
+                >
+                  {saving ? (
+                    <Icons.spinner className='mr-2 h-4 w-4 animate-spin' />
+                  ) : (
+                    <Icon
+                      icon='solar:diskette-duotone'
+                      className='mr-2 h-4 w-4'
+                    />
+                  )}
+                  Save Attendance
+                </Button>
+              )}
+            </>
+          }
+        />
 
         {/* Class and Date Selection */}
         <Card>
@@ -377,7 +373,7 @@ export default function AttendancePage() {
             <Card>
               <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
                 <CardTitle className='text-sm font-medium'>Total</CardTitle>
-                <UserCheck className='text-muted-foreground h-4 w-4' />
+                <Icons.UserCheck className='text-muted-foreground h-4 w-4' />
               </CardHeader>
               <CardContent>
                 <div className='text-2xl font-bold'>{stats.total}</div>
@@ -386,7 +382,7 @@ export default function AttendancePage() {
             <Card>
               <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
                 <CardTitle className='text-sm font-medium'>Present</CardTitle>
-                <CheckCircle className='h-4 w-4 text-green-600' />
+                <Icons.CheckCircle2 className='h-4 w-4 text-green-600' />
               </CardHeader>
               <CardContent>
                 <div className='text-2xl font-bold text-green-600'>
@@ -401,7 +397,7 @@ export default function AttendancePage() {
             <Card>
               <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
                 <CardTitle className='text-sm font-medium'>Absent</CardTitle>
-                <XCircle className='text-destructive h-4 w-4' />
+                <Icons.X className='text-destructive h-4 w-4' />
               </CardHeader>
               <CardContent>
                 <div className='text-destructive text-2xl font-bold'>
@@ -412,7 +408,7 @@ export default function AttendancePage() {
             <Card>
               <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
                 <CardTitle className='text-sm font-medium'>Late</CardTitle>
-                <Clock className='h-4 w-4 text-amber-600' />
+                <Icons.Clock className='h-4 w-4 text-amber-600' />
               </CardHeader>
               <CardContent>
                 <div className='text-2xl font-bold text-amber-600'>
@@ -423,7 +419,7 @@ export default function AttendancePage() {
             <Card>
               <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
                 <CardTitle className='text-sm font-medium'>Excused</CardTitle>
-                <AlertCircle className='h-4 w-4 text-blue-600' />
+                <Icons.AlertCircle className='h-4 w-4 text-blue-600' />
               </CardHeader>
               <CardContent>
                 <div className='text-2xl font-bold text-blue-600'>
@@ -534,7 +530,7 @@ export default function AttendancePage() {
                                     updateStatus(entry.studentId, 'present')
                                   }
                                 >
-                                  <CheckCircle className='h-4 w-4' />
+                                  <Icons.CheckCircle2 className='h-4 w-4' />
                                 </Button>
                                 <Button
                                   variant={
@@ -547,7 +543,7 @@ export default function AttendancePage() {
                                     updateStatus(entry.studentId, 'absent')
                                   }
                                 >
-                                  <XCircle className='h-4 w-4' />
+                                  <Icons.X className='h-4 w-4' />
                                 </Button>
                                 <Button
                                   variant={
@@ -565,7 +561,7 @@ export default function AttendancePage() {
                                     updateStatus(entry.studentId, 'late')
                                   }
                                 >
-                                  <Clock className='h-4 w-4' />
+                                  <Icons.Clock className='h-4 w-4' />
                                 </Button>
                                 <Button
                                   variant={
@@ -583,7 +579,7 @@ export default function AttendancePage() {
                                     updateStatus(entry.studentId, 'excused')
                                   }
                                 >
-                                  <AlertCircle className='h-4 w-4' />
+                                  <Icons.AlertCircle className='h-4 w-4' />
                                 </Button>
                               </div>
                             </TableCell>
@@ -614,9 +610,9 @@ export default function AttendancePage() {
                     <div className='mt-4 flex justify-end'>
                       <Button onClick={saveAttendance} disabled={saving}>
                         {saving ? (
-                          <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                          <Icons.spinner className='mr-2 h-4 w-4 animate-spin' />
                         ) : (
-                          <Save className='mr-2 h-4 w-4' />
+                          <Icons.check className='mr-2 h-4 w-4' />
                         )}
                         Save Attendance
                       </Button>

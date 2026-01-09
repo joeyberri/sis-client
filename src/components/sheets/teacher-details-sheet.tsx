@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import {
   Sheet,
   SheetContent,
@@ -20,7 +21,10 @@ import {
   Calendar,
   Edit,
   Award,
-  Building
+  Building,
+  Clock,
+  Users,
+  Plus
 } from 'lucide-react';
 
 interface Teacher {
@@ -64,6 +68,23 @@ export function TeacherDetailsSheet({
   teacher,
   onEdit
 }: TeacherDetailsSheetProps) {
+  const router = useRouter();
+
+  const handleViewSchedule = () => {
+    onOpenChange(false);
+    router.push(`/dashboard/timetables?teacher=${teacher.id}`);
+  };
+
+  const handleViewClasses = () => {
+    onOpenChange(false);
+    router.push(`/dashboard/classes?teacher=${teacher.id}`);
+  };
+
+  const handleAssignSubject = () => {
+    onOpenChange(false);
+    router.push(`/dashboard/subjects?assign=${teacher.id}`);
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className='w-full sm:max-w-lg'>
@@ -181,13 +202,16 @@ export function TeacherDetailsSheet({
               Quick Actions
             </h3>
             <div className='flex flex-wrap gap-2'>
-              <Button variant='outline' size='sm' onClick={() => {}}>
+              <Button variant='outline' size='sm' onClick={handleViewSchedule}>
+                <Clock className='mr-2 h-4 w-4' />
                 View Schedule
               </Button>
-              <Button variant='outline' size='sm' onClick={() => {}}>
+              <Button variant='outline' size='sm' onClick={handleViewClasses}>
+                <Users className='mr-2 h-4 w-4' />
                 View Classes
               </Button>
-              <Button variant='outline' size='sm' onClick={() => {}}>
+              <Button variant='outline' size='sm' onClick={handleAssignSubject}>
+                <Plus className='mr-2 h-4 w-4' />
                 Assign Subject
               </Button>
             </div>

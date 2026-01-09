@@ -23,7 +23,8 @@ import {
   SidebarMenuItem,
   useSidebar
 } from '@/components/ui/sidebar';
-import { Icon } from '@/components/icons';
+import { Icon } from '@iconify/react';
+import { ReactNode } from 'react';
 
 export function NavProjects({
   projects
@@ -31,7 +32,7 @@ export function NavProjects({
   projects: {
     name: string;
     url: string;
-    icon: Icon;
+    icon: ReactNode;
   }[];
 }) {
   const { isMobile } = useSidebar();
@@ -44,7 +45,7 @@ export function NavProjects({
           <SidebarMenuItem key={item.name}>
             <SidebarMenuButton asChild>
               <a href={item.url}>
-                <item.icon />
+                {item.icon}
                 <span>{item.name}</span>
               </a>
             </SidebarMenuButton>

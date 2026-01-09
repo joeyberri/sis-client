@@ -25,7 +25,7 @@ export const SIDEBAR_CONFIGS: Record<UserRole, SidebarConfig> = {
       {
         title: 'Dashboard',
         href: '/dashboard/superadmin-overview',
-        icon: 'LayoutDashboard'
+        icon: 'solar:widget-2-duotone'
       }
     ],
     sidebarGroups: [
@@ -35,11 +35,11 @@ export const SIDEBAR_CONFIGS: Record<UserRole, SidebarConfig> = {
           {
             title: 'Overview',
             href: '/dashboard/superadmin-overview',
-            icon: 'LayoutDashboard'
+            icon: 'solar:widget-2-duotone'
           },
           {
             title: 'Schools',
-            icon: 'Building2',
+            icon: 'solar:city-duotone',
             children: [
               {
                 title: 'All Schools',
@@ -53,7 +53,7 @@ export const SIDEBAR_CONFIGS: Record<UserRole, SidebarConfig> = {
           },
           {
             title: 'Users',
-            icon: 'Users',
+            icon: 'solar:users-group-rounded-duotone',
             children: [
               { title: 'All Users', href: '/dashboard/users' },
               { title: 'Invite User', href: '/dashboard/users/invite' }
@@ -67,12 +67,12 @@ export const SIDEBAR_CONFIGS: Record<UserRole, SidebarConfig> = {
           {
             title: 'Support Tickets',
             href: '/dashboard/superadmin-overview/tickets',
-            icon: 'HeadphonesIcon'
+            icon: 'solar:headphones-round-duotone'
           },
           {
             title: 'Pricing & Plans',
             href: '/dashboard/superadmin-overview/pricing',
-            icon: 'CreditCard'
+            icon: 'solar:card-transfer-duotone'
           }
         ]
       },
@@ -82,20 +82,28 @@ export const SIDEBAR_CONFIGS: Record<UserRole, SidebarConfig> = {
           {
             title: 'Global Settings',
             href: '/dashboard/settings',
-            icon: 'Settings'
+            icon: 'solar:settings-minimalistic-duotone'
           },
-          { title: 'Audit Logs', href: '/dashboard/audit', icon: 'FileText' },
+          {
+            title: 'Audit Logs',
+            href: '/dashboard/audit',
+            icon: 'solar:document-text-duotone'
+          },
           {
             title: 'Health & Monitoring',
             href: '/dashboard/health',
-            icon: 'Activity'
+            icon: 'solar:pulse-2-duotone'
           },
           {
             title: 'Integrations',
             href: '/dashboard/integrations',
-            icon: 'Plug'
+            icon: 'solar:plug-circle-duotone'
           },
-          { title: 'Release Notes', href: '/dashboard/releases', icon: 'Bell' }
+          {
+            title: 'Release Notes',
+            href: '/dashboard/releases',
+            icon: 'solar:bell-bing-duotone'
+          }
         ]
       }
     ]
@@ -103,13 +111,17 @@ export const SIDEBAR_CONFIGS: Record<UserRole, SidebarConfig> = {
 
   admin: {
     mainNav: [
-      { title: 'Dashboard', href: '/dashboard', icon: 'LayoutDashboard' }
+      { title: 'Dashboard', href: '/dashboard', icon: 'solar:widget-2-duotone' }
     ],
     sidebarGroups: [
       {
         title: 'Overview',
         items: [
-          { title: 'Dashboard', href: '/dashboard', icon: 'LayoutDashboard' }
+          {
+            title: 'Dashboard',
+            href: '/dashboard',
+            icon: 'solar:widget-2-duotone'
+          }
         ]
       },
       {
@@ -117,7 +129,7 @@ export const SIDEBAR_CONFIGS: Record<UserRole, SidebarConfig> = {
         items: [
           {
             title: 'Students',
-            icon: 'UserCheck',
+            icon: 'solar:user-plus-duotone',
             children: [
               { title: 'All Students', href: '/dashboard/students' },
               { title: 'Enroll Student', href: '/dashboard/students/enroll' },
@@ -126,12 +138,12 @@ export const SIDEBAR_CONFIGS: Record<UserRole, SidebarConfig> = {
           },
           {
             title: 'Teachers',
-            icon: 'GraduationCap',
+            icon: 'solar:user-hand-up-duotone',
             children: [{ title: 'All Teachers', href: '/dashboard/teachers' }]
           },
           {
             title: 'Classes',
-            icon: 'BookOpen',
+            icon: 'solar:clapperboard-edit-duotone',
             children: [{ title: 'All Classes', href: '/dashboard/classes' }]
           }
         ]
@@ -141,7 +153,7 @@ export const SIDEBAR_CONFIGS: Record<UserRole, SidebarConfig> = {
         items: [
           {
             title: 'Assessments',
-            icon: 'FileText',
+            icon: 'solar:document-text-duotone',
             children: [
               { title: 'All Assessments', href: '/dashboard/assessments' },
               {
@@ -152,14 +164,19 @@ export const SIDEBAR_CONFIGS: Record<UserRole, SidebarConfig> = {
             ]
           },
           {
+            title: 'Calendar',
+            href: '/dashboard/calendar',
+            icon: 'solar:calendar-date-duotone'
+          },
+          {
             title: 'Gradebook',
             href: '/dashboard/classes/gradebook',
-            icon: 'BarChart2'
+            icon: 'solar:chart-2-duotone'
           },
           {
             title: 'Attendance',
             href: '/dashboard/attendance',
-            icon: 'Calendar'
+            icon: 'solar:user-check-rounded-duotone'
           }
         ]
       },
@@ -168,7 +185,7 @@ export const SIDEBAR_CONFIGS: Record<UserRole, SidebarConfig> = {
         items: [
           {
             title: 'Reports',
-            icon: 'BarChart3',
+            icon: 'solar:graph-up-duotone',
             children: [
               { title: 'Overview', href: '/dashboard/reports' },
               { title: 'Report Cards', href: '/dashboard/reports/cards' },
@@ -181,20 +198,28 @@ export const SIDEBAR_CONFIGS: Record<UserRole, SidebarConfig> = {
           {
             title: 'Analytics',
             href: '/dashboard/analytics',
-            icon: 'TrendingUp'
+            icon: 'solar:round-graph-duotone'
           }
         ]
       },
       {
         title: 'Operations',
         items: [
-          { title: 'Documents', href: '/dashboard/documents', icon: 'File' },
+          {
+            title: 'Documents',
+            href: '/dashboard/documents',
+            icon: 'solar:document-text-duotone'
+          },
           {
             title: 'Payments',
             href: '/dashboard/payments',
-            icon: 'CreditCard'
+            icon: 'solar:card-transfer-duotone'
           },
-          { title: 'Saved Views', href: '/dashboard/views', icon: 'Bookmark' }
+          {
+            title: 'Saved Views',
+            href: '/dashboard/views',
+            icon: 'solar:bookmark-duotone'
+          }
         ]
       },
       {
@@ -202,7 +227,7 @@ export const SIDEBAR_CONFIGS: Record<UserRole, SidebarConfig> = {
         items: [
           {
             title: 'School Settings',
-            icon: 'Settings',
+            icon: 'solar:settings-minimalistic-duotone',
             children: [
               {
                 title: 'Users & Permissions',
@@ -214,7 +239,11 @@ export const SIDEBAR_CONFIGS: Record<UserRole, SidebarConfig> = {
               }
             ]
           },
-          { title: 'Support', href: '/dashboard/support', icon: 'HelpCircle' }
+          {
+            title: 'Support',
+            href: '/dashboard/support',
+            icon: 'solar:question-square-duotone'
+          }
         ]
       }
     ]
@@ -222,13 +251,17 @@ export const SIDEBAR_CONFIGS: Record<UserRole, SidebarConfig> = {
 
   teacher: {
     mainNav: [
-      { title: 'Dashboard', href: '/dashboard', icon: 'LayoutDashboard' }
+      { title: 'Dashboard', href: '/dashboard', icon: 'solar:widget-2-duotone' }
     ],
     sidebarGroups: [
       {
         title: 'Overview',
         items: [
-          { title: 'Dashboard', href: '/dashboard', icon: 'LayoutDashboard' }
+          {
+            title: 'Dashboard',
+            href: '/dashboard',
+            icon: 'solar:widget-2-duotone'
+          }
         ]
       },
       {
@@ -237,22 +270,27 @@ export const SIDEBAR_CONFIGS: Record<UserRole, SidebarConfig> = {
           {
             title: 'Student Profiles',
             href: '/dashboard/students',
-            icon: 'UserCheck'
+            icon: 'solar:user-check-rounded-duotone'
           },
           {
             title: 'Assessments',
             href: '/dashboard/assessments',
-            icon: 'FileText'
+            icon: 'solar:document-text-duotone'
+          },
+          {
+            title: 'Calendar',
+            href: '/dashboard/calendar',
+            icon: 'solar:calendar-date-duotone'
           },
           {
             title: 'Gradebook',
             href: '/dashboard/classes/gradebook',
-            icon: 'BarChart2'
+            icon: 'solar:chart-2-duotone'
           },
           {
             title: 'Attendance',
             href: '/dashboard/attendance',
-            icon: 'Calendar'
+            icon: 'solar:user-check-rounded-duotone'
           }
         ]
       },
@@ -262,10 +300,18 @@ export const SIDEBAR_CONFIGS: Record<UserRole, SidebarConfig> = {
           {
             title: 'Analytics',
             href: '/dashboard/analytics',
-            icon: 'TrendingUp'
+            icon: 'solar:graph-up-duotone'
           },
-          { title: 'Saved Views', href: '/dashboard/views', icon: 'Bookmark' },
-          { title: 'Support', href: '/dashboard/support', icon: 'HelpCircle' }
+          {
+            title: 'Saved Views',
+            href: '/dashboard/views',
+            icon: 'solar:bookmark-duotone'
+          },
+          {
+            title: 'Support',
+            href: '/dashboard/support',
+            icon: 'solar:question-square-duotone'
+          }
         ]
       }
     ]
@@ -273,27 +319,47 @@ export const SIDEBAR_CONFIGS: Record<UserRole, SidebarConfig> = {
 
   parent: {
     mainNav: [
-      { title: 'Dashboard', href: '/dashboard', icon: 'LayoutDashboard' }
+      { title: 'Dashboard', href: '/dashboard', icon: 'solar:widget-2-duotone' }
     ],
     sidebarGroups: [
       {
         title: 'Overview',
         items: [
-          { title: 'Dashboard', href: '/dashboard', icon: 'LayoutDashboard' }
+          {
+            title: 'Dashboard',
+            href: '/dashboard',
+            icon: 'solar:widget-2-duotone'
+          }
         ]
       },
       {
         title: 'Family',
         items: [
-          { title: 'My Children', href: '/dashboard/students', icon: 'Users' },
-          { title: 'Payments', href: '/dashboard/payments', icon: 'CreditCard' }
+          {
+            title: 'My Children',
+            href: '/dashboard/students',
+            icon: 'solar:users-group-rounded-duotone'
+          },
+          {
+            title: 'Payments',
+            href: '/dashboard/payments',
+            icon: 'solar:card-transfer-duotone'
+          }
         ]
       },
       {
         title: 'Account',
         items: [
-          { title: 'Profile', href: '/dashboard/profile', icon: 'User' },
-          { title: 'Support', href: '/dashboard/support', icon: 'HelpCircle' }
+          {
+            title: 'Profile',
+            href: '/dashboard/profile',
+            icon: 'solar:user-circle-duotone'
+          },
+          {
+            title: 'Support',
+            href: '/dashboard/support',
+            icon: 'solar:question-square-duotone'
+          }
         ]
       }
     ]
@@ -301,13 +367,17 @@ export const SIDEBAR_CONFIGS: Record<UserRole, SidebarConfig> = {
 
   student: {
     mainNav: [
-      { title: 'Dashboard', href: '/dashboard', icon: 'LayoutDashboard' }
+      { title: 'Dashboard', href: '/dashboard', icon: 'solar:widget-2-duotone' }
     ],
     sidebarGroups: [
       {
         title: 'Overview',
         items: [
-          { title: 'Dashboard', href: '/dashboard', icon: 'LayoutDashboard' }
+          {
+            title: 'Dashboard',
+            href: '/dashboard',
+            icon: 'solar:widget-2-duotone'
+          }
         ]
       },
       {
@@ -316,20 +386,33 @@ export const SIDEBAR_CONFIGS: Record<UserRole, SidebarConfig> = {
           {
             title: 'My Courses',
             href: '/dashboard/analytics',
-            icon: 'BookOpen'
+            icon: 'solar:library-duotone'
+          },
+          {
+            title: 'Calendar',
+            href: '/dashboard/calendar',
+            icon: 'solar:calendar-date-duotone'
           },
           {
             title: 'Attendance',
             href: '/dashboard/attendance',
-            icon: 'Calendar'
+            icon: 'solar:user-check-rounded-duotone'
           }
         ]
       },
       {
         title: 'Account',
         items: [
-          { title: 'Profile', href: '/dashboard/profile', icon: 'User' },
-          { title: 'Support', href: '/dashboard/support', icon: 'HelpCircle' }
+          {
+            title: 'Profile',
+            href: '/dashboard/profile',
+            icon: 'solar:user-circle-duotone'
+          },
+          {
+            title: 'Support',
+            href: '/dashboard/support',
+            icon: 'solar:question-square-duotone'
+          }
         ]
       }
     ]
@@ -337,13 +420,17 @@ export const SIDEBAR_CONFIGS: Record<UserRole, SidebarConfig> = {
 
   counselor: {
     mainNav: [
-      { title: 'Dashboard', href: '/dashboard', icon: 'LayoutDashboard' }
+      { title: 'Dashboard', href: '/dashboard', icon: 'solar:widget-2-duotone' }
     ],
     sidebarGroups: [
       {
         title: 'Overview',
         items: [
-          { title: 'Dashboard', href: '/dashboard', icon: 'LayoutDashboard' }
+          {
+            title: 'Dashboard',
+            href: '/dashboard',
+            icon: 'solar:widget-2-duotone'
+          }
         ]
       },
       {
@@ -352,16 +439,28 @@ export const SIDEBAR_CONFIGS: Record<UserRole, SidebarConfig> = {
           {
             title: 'Student Profiles',
             href: '/dashboard/students',
-            icon: 'UserCheck'
+            icon: 'solar:user-check-rounded-duotone'
           },
-          { title: 'Reports', href: '/dashboard/reports', icon: 'BarChart3' }
+          {
+            title: 'Reports',
+            href: '/dashboard/reports',
+            icon: 'solar:graph-up-duotone'
+          }
         ]
       },
       {
         title: 'Tools',
         items: [
-          { title: 'Saved Views', href: '/dashboard/views', icon: 'Bookmark' },
-          { title: 'Support', href: '/dashboard/support', icon: 'HelpCircle' }
+          {
+            title: 'Saved Views',
+            href: '/dashboard/views',
+            icon: 'solar:bookmark-duotone'
+          },
+          {
+            title: 'Support',
+            href: '/dashboard/support',
+            icon: 'solar:question-square-duotone'
+          }
         ]
       }
     ]
@@ -369,31 +468,47 @@ export const SIDEBAR_CONFIGS: Record<UserRole, SidebarConfig> = {
 
   accountant: {
     mainNav: [
-      { title: 'Dashboard', href: '/dashboard', icon: 'LayoutDashboard' }
+      { title: 'Dashboard', href: '/dashboard', icon: 'solar:widget-2-duotone' }
     ],
     sidebarGroups: [
       {
         title: 'Overview',
         items: [
-          { title: 'Dashboard', href: '/dashboard', icon: 'LayoutDashboard' }
+          {
+            title: 'Dashboard',
+            href: '/dashboard',
+            icon: 'solar:widget-2-duotone'
+          }
         ]
       },
       {
         title: 'Finance',
         items: [
-          { title: 'Invoices', href: '/dashboard/invoices', icon: 'FileText' },
+          {
+            title: 'Invoices',
+            href: '/dashboard/invoices',
+            icon: 'solar:document-text-duotone'
+          },
           {
             title: 'Payments',
             href: '/dashboard/payments',
-            icon: 'CreditCard'
+            icon: 'solar:card-transfer-duotone'
           },
-          { title: 'Reports', href: '/dashboard/reports', icon: 'BarChart3' }
+          {
+            title: 'Reports',
+            href: '/dashboard/reports',
+            icon: 'solar:graph-up-duotone'
+          }
         ]
       },
       {
         title: 'Support',
         items: [
-          { title: 'Support', href: '/dashboard/support', icon: 'HelpCircle' }
+          {
+            title: 'Support',
+            href: '/dashboard/support',
+            icon: 'solar:question-square-duotone'
+          }
         ]
       }
     ]

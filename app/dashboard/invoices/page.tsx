@@ -175,6 +175,128 @@ export default function InvoicesPage() {
     }
   };
 
+  const handleDownloadPDF = async (invoice: Invoice) => {
+    try {
+      toast.loading('Generating invoice PDF...');
+      // Generate printable invoice in new window
+      const invoiceWindow = window.open('', '_blank');
+      if (invoiceWindow) {
+        const statusColors: Record<string, string> = {
+          draft: '#6b7280',
+          sent: '#3b82f6',
+          paid: '#10b981',
+          overdue: '#ef4444',
+          cancelled: '#9ca3af'
+        };
+        const invoiceHTML = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Invoice ${invoice.invoiceNumber}</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; color: #333; }
+              .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
+              .logo { font-size: 24px; font-weight: bold; }
+              .invoice-info { text-align: right; }
+              .invoice-number { font-size: 18px; font-weight: bold; color: #333; }
+              .status { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.85em; color: white; background: ${statusColors[invoice.status] || '#6b7280'}; margin-top: 8px; }
+              .section { margin-bottom: 30px; }
+              .section-title { font-size: 14px; color: #666; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+              .bill-to { background: #f9f9f9; padding: 15px; border-radius: 8px; }
+              .items-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+              .items-table th, .items-table td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+              .items-table th { background: #f5f5f5; font-weight: 600; }
+              .items-table .amount { text-align: right; }
+              .totals { margin-top: 20px; margin-left: auto; width: 300px; }
+              .total-row { display: flex; justify-content: space-between; padding: 8px 0; }
+              .total-row.grand { font-size: 1.2em; font-weight: bold; border-top: 2px solid #333; padding-top: 12px; margin-top: 8px; }
+              .footer { margin-top: 50px; text-align: center; color: #999; font-size: 0.9em; border-top: 1px solid #eee; padding-top: 20px; }
+              .due-date { color: ${invoice.status === 'overdue' ? '#ef4444' : '#666'}; font-weight: ${invoice.status === 'overdue' ? 'bold' : 'normal'}; }
+              @media print { 
+                body { padding: 20px; } 
+                button { display: none; }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <div class="logo">INVOICE</div>
+              <div class="invoice-info">
+                <div class="invoice-number">${invoice.invoiceNumber}</div>
+                <div class="status">${invoice.status.toUpperCase()}</div>
+              </div>
+            </div>
+            
+            <div class="section">
+              <div class="section-title">Bill To</div>
+              <div class="bill-to">
+                <strong>${invoice.studentName}</strong><br>
+                Student ID: ${invoice.studentId}
+              </div>
+            </div>
+            
+            <div class="section">
+              <div class="section-title">Invoice Details</div>
+              <div>
+                <strong>Date Issued:</strong> ${new Date(invoice.createdAt).toLocaleDateString()}<br>
+                <span class="due-date"><strong>Due Date:</strong> ${new Date(invoice.dueDate).toLocaleDateString()}</span>
+              </div>
+            </div>
+            
+            <table class="items-table">
+              <thead>
+                <tr>
+                  <th>Description</th>
+                  <th class="amount">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${
+                  invoice.items?.length > 0
+                    ? invoice.items
+                        .map(
+                          (item) => `
+                    <tr>
+                      <td>${item.description}</td>
+                      <td class="amount">$${item.amount.toLocaleString()}</td>
+                    </tr>
+                  `
+                        )
+                        .join('')
+                    : `<tr><td>Tuition & Fees</td><td class="amount">$${invoice.amount.toLocaleString()}</td></tr>`
+                }
+              </tbody>
+            </table>
+            
+            <div class="totals">
+              <div class="total-row grand">
+                <span>Total Due</span>
+                <span>$${invoice.amount.toLocaleString()}</span>
+              </div>
+            </div>
+            
+            <div class="footer">
+              <p>Thank you for your business</p>
+              <p>Generated on ${new Date().toLocaleString()}</p>
+              <button onclick="window.print()" style="margin-top: 20px; padding: 10px 20px; cursor: pointer;">Print Invoice</button>
+            </div>
+          </body>
+          </html>
+        `;
+        invoiceWindow.document.write(invoiceHTML);
+        invoiceWindow.document.close();
+        toast.dismiss();
+        toast.success('Invoice opened in new tab');
+      } else {
+        toast.dismiss();
+        toast.error('Please allow popups to download invoice');
+      }
+    } catch (err) {
+      toast.dismiss();
+      toast.error('Failed to generate invoice PDF');
+    }
+  };
+
   const filteredInvoices = invoices.filter((inv) => {
     const matchesSearch =
       inv.studentName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -357,9 +479,7 @@ export default function InvoicesPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align='end'>
                               <DropdownMenuItem
-                                onClick={() =>
-                                  toast.info('Download feature coming soon')
-                                }
+                                onClick={() => handleDownloadPDF(invoice)}
                               >
                                 <Download className='mr-2 h-4 w-4' />
                                 Download PDF
